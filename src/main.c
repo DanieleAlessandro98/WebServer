@@ -3,6 +3,7 @@
 #include "winsock_utils.h"
 #include "socket.h"
 #include "address.h"
+#include "network_io.h"
 
 int main()
 {
@@ -62,6 +63,17 @@ int main()
         fprintf(stderr, "Failed to accept socket: %d.\n", WSAGetLastError());
         close_socket(&client_socket);
     }
+
+    char recvbuf[MAX_HTTP_REQUEST_SIZE];
+    int recvbuflen = MAX_HTTP_REQUEST_SIZE;
+    int r = recv_all(&client_socket, recvbuf, recvbuflen);
+    if (r == SOCKET_ERROR)
+    {
+        fprintf(stderr, "Failed to recv data: %d.\n", WSAGetLastError());
+        close_socket(&client_socket);
+    }
+
+    printf("%s\n", recvbuf);
 
     if (close_socket(&server_socket) != 0)
     {

@@ -9,3 +9,5 @@
 #include <windows.h>
 #include <winsock2.h>
 #include <ws2tcpip.h>
+
+#define MAX_HTTP_REQUEST_SIZE 2047

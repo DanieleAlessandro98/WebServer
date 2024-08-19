@@ -12,6 +12,7 @@ add_executable(${PROJECT_NAME}
         src/winsock_utils.c
         src/socket.c
         src/address.c
+        src/network_io.c
 )
 
 target_link_libraries(${PROJECT_NAME} Ws2_32)
