@@ -24,6 +24,8 @@ bool set_address_ip(NetAddress *address, const char *c_szIP)
         return false;
 
     address->sockAddrIn.sin_addr.s_addr = addr.S_un.S_addr;
+    address->sockAddrIn.sin_family = AF_INET;
+
     return true;
 }
 
@@ -42,7 +44,9 @@ bool set_address_dsn(NetAddress *address, const char *c_szDNS)
         return false;
 
     struct sockaddr_in *addr = (struct sockaddr_in *)result->ai_addr;
+
     address->sockAddrIn.sin_addr = addr->sin_addr;
+    address->sockAddrIn.sin_family = AF_INET;
 
     freeaddrinfo(result);
     return true;

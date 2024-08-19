@@ -38,6 +38,22 @@ int main()
         return 1;
     }
 
+    if (bind_socket(&server_socket, &address) != 0)
+    {
+        fprintf(stderr, "Failed to bind socket: %d.\n", WSAGetLastError());
+        close_socket(&server_socket);
+        cleanup_winsock();
+        return 1;
+    }
+
+    if (listen_socket(&server_socket) != 0)
+    {
+        fprintf(stderr, "Failed to listen socket: %d.\n", WSAGetLastError());
+        close_socket(&server_socket);
+        cleanup_winsock();
+        return 1;
+    }
+
     if (close_socket(&server_socket) != 0)
     {
         fprintf(stderr, "Failed to close socket: %d.\n", WSAGetLastError());
