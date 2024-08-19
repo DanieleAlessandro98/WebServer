@@ -18,8 +18,10 @@ typedef enum
 
 AddressResult set_address(NetAddress *address, const char *c_szAddr, int port);
 bool set_address_ip(NetAddress *address, const char *c_szIP);
-bool set_address_dsn();
+bool set_address_dsn(NetAddress *address, const char *c_szDNS);
 void set_address_port(NetAddress *address, int port);
-bool is_address_ip();
+bool is_address_ip(const char *c_szAddr);
+int inet_pton(int af, const char *src, void *dst);
+const char *inet_ntop(int af, const void *src, char *dst, socklen_t size);
 
-#endif ADDRESS_H
+#endif // ADDRESS_H
