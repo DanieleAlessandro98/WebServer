@@ -28,6 +28,15 @@ int listen_socket(SOCKET *sock_fd)
     return 0;
 }
 
+int accept_socket(SOCKET *sock_fd_server, SOCKET *sock_fd_client)
+{
+    *sock_fd_client = accept(*sock_fd_server, NULL, NULL);
+    if (*sock_fd_client == INVALID_SOCKET)
+        return WSAGetLastError();
+
+    return 0;
+}
+
 int close_socket(SOCKET *sock_fd)
 {
     int close_result = closesocket(*sock_fd);

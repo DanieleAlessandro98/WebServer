@@ -54,6 +54,15 @@ int main()
         return 1;
     }
 
+    printf("Waiting connections...\n");
+
+    SOCKET client_socket;
+    if (accept_socket(&server_socket, &client_socket) != 0)
+    {
+        fprintf(stderr, "Failed to accept socket: %d.\n", WSAGetLastError());
+        close_socket(&client_socket);
+    }
+
     if (close_socket(&server_socket) != 0)
     {
         fprintf(stderr, "Failed to close socket: %d.\n", WSAGetLastError());
