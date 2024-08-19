@@ -1,8 +1,8 @@
 #ifndef ADDRESS_H
 #define ADDRESS_H
 
+#include "win_definition.h"
 #include <stdbool.h>
-#include <WinSock2.h>
 
 typedef struct
 {

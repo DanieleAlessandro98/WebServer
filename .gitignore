@@ -55,3 +55,7 @@ dkms.conf
 # Cmake build files
 build/**
 !build/.gitkeep
+
+
+# VS Code folder
+.vscode/**/*
