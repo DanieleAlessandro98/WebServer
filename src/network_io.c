@@ -17,6 +17,12 @@ int recv_all(SOCKET *sock_fd, char *buf, int total_len)
 
         current_len += r;
         bytes_left -= r;
+
+        buf[current_len] = 0;
+
+        char *q = strstr(buf, "\r\n\r\n");
+        if (q)
+            break;
     }
 
     return current_len;
