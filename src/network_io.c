@@ -27,3 +27,22 @@ int recv_all(SOCKET *sock_fd, char *buf, int total_len)
 
     return current_len;
 }
+
+int send_all(SOCKET *sock_fd, const char *buf, int total_len)
+{
+    int current_len = 0;
+    int bytes_left = total_len;
+
+    while (current_len < total_len)
+    {
+        int s = send(*sock_fd, buf + current_len, bytes_left, 0);
+
+        if (s == SOCKET_ERROR)
+            return SOCKET_ERROR;
+
+        current_len += s;
+        bytes_left -= s;
+    }
+
+    return current_len;
+}

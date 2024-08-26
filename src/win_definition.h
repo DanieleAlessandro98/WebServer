@@ -11,3 +11,4 @@
 #include <ws2tcpip.h>
 
 #define MAX_HTTP_REQUEST_SIZE 2047
+#define MAX_HTTP_RESPONSE_SIZE 8192

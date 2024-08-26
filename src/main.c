@@ -75,6 +75,29 @@ int main()
 
     printf("%s\n", recvbuf);
 
+    printf("Trying to send data..\n");
+
+    const char *message = "test send text";
+    int message_length = strlen(message);
+
+    char response[MAX_HTTP_RESPONSE_SIZE];
+    int response_length = snprintf(response,
+                                   MAX_HTTP_RESPONSE_SIZE,
+                                   "HTTP/1.1 200 OK\r\n"
+                                   "Content-Type: text/plain\r\n"
+                                   "Content-Length: %d\r\n"
+                                   "Connection: close\r\n"
+                                   "\r\n"
+                                   "%s",
+                                   message_length, message);
+
+    int s = send_all(&client_socket, response, response_length);
+    if (s == SOCKET_ERROR)
+    {
+        fprintf(stderr, "Failed to send data: %d.\n", WSAGetLastError());
+        close_socket(&client_socket);
+    }
+
     if (close_socket(&server_socket) != 0)
     {
         fprintf(stderr, "Failed to close socket: %d.\n", WSAGetLastError());
