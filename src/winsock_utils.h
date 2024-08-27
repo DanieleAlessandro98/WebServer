@@ -1,7 +1,9 @@
 #ifndef WINSOCK_UTILS_H
 #define WINSOCK_UTILS_H
 
-int initialize_winsock();
+#include <stdbool.h>
+
+bool initialize_winsock();
 void cleanup_winsock();
 
 #endif // WINSOCK_UTILS_H

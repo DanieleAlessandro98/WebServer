@@ -14,9 +14,9 @@ typedef enum
     ADDRESS_SUCCESS = 0,
     ADDRESS_ERR_INVALID_IP = 1,
     ADDRESS_ERR_DNS_RESOLUTION_FAILED = 2
-} AddressResult;
+} EAddressResult;
 
-AddressResult set_address(NetAddress *address, const char *c_szAddr, int port);
+EAddressResult set_address(NetAddress *address, const char *c_szAddr, int port);
 bool set_address_ip(NetAddress *address, const char *c_szIP);
 bool set_address_dsn(NetAddress *address, const char *c_szDNS);
 void set_address_port(NetAddress *address, int port);

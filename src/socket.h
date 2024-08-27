@@ -4,10 +4,10 @@
 #include "win_definition.h"
 #include "address.h"
 
-int create_socket(SOCKET *_socket);
-int bind_socket(SOCKET *sock_fd, NetAddress *address);
-int listen_socket(SOCKET *_socket);
-int accept_socket(SOCKET *sock_fd_server, SOCKET *sock_fd_client);
-int close_socket(SOCKET *_socket);
+bool create_socket(SOCKET *_socket);
+bool bind_socket(SOCKET *sock_fd, NetAddress *address);
+bool listen_socket(SOCKET *_socket);
+bool accept_socket(SOCKET *sock_fd_server, SOCKET *sock_fd_client);
+void close_socket(SOCKET *_socket);
 
 #endif // SOCKET_H

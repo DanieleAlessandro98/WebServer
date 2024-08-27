@@ -2,11 +2,13 @@
 #include <winsock2.h>
 #include "winsock_utils.h"
 
-int initialize_winsock()
+bool initialize_winsock()
 {
     WSADATA wsaData;
-    int result = WSAStartup(MAKEWORD(2,2), &wsaData);
-    return result;
+    if (WSAStartup(MAKEWORD(2, 2), &wsaData) != 0)
+        return false;
+
+    return true;
 }
 
 void cleanup_winsock()

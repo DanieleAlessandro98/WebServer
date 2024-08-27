@@ -6,59 +6,63 @@
 #include "network_io.h"
 #include "fdwatch.h"
 
+int cleanup_and_exit(SOCKET *server_socket, LPFDWATCH *main_fdw, int exit_code);
+void close_client_session(LPFDWATCH main_fdw, CLIENT_DATA_POINTER client_data);
+
 int main()
 {
-    int winsock_result = initialize_winsock();
-    if (winsock_result != 0)
+    if (!initialize_winsock())
     {
-        fprintf(stderr, "Failed to initialize Winsock: %d.\n", winsock_result);
-        return 1;
+        fprintf(stderr, "Failed to initialize Winsock: %d.\n", WSAGetLastError());
+        return EXIT_FAILURE;
     }
 
     SOCKET server_socket;
-    if (create_socket(&server_socket) != 0)
+    if (!create_socket(&server_socket))
     {
         fprintf(stderr, "Failed to create socket: %d.\n", WSAGetLastError());
-        cleanup_winsock();
-        return 1;
+        cleanup_and_exit(NULL, NULL, EXIT_FAILURE);
     }
 
     NetAddress address;
-    AddressResult address_result = set_address(&address, "localhost", 8080);
-    switch (address_result)
+    EAddressResult address_result = set_address(&address, "localhost", 8080);
+    if (address_result != ADDRESS_SUCCESS)
     {
-    case ADDRESS_ERR_INVALID_IP:
-        fprintf(stderr, "Failed to set IP address: Invalid IP format.\n");
-        close_socket(&server_socket);
-        cleanup_winsock();
-        return 1;
+        switch (address_result)
+        {
+        case ADDRESS_ERR_INVALID_IP:
+            fprintf(stderr, "Failed to set IP address: Invalid IP format.\n");
+            break;
 
-    case ADDRESS_ERR_DNS_RESOLUTION_FAILED:
-        fprintf(stderr, "Failed to resolve DNS: Unable to resolve the hostname.\n");
-        close_socket(&server_socket);
-        cleanup_winsock();
-        return 1;
+        case ADDRESS_ERR_DNS_RESOLUTION_FAILED:
+            fprintf(stderr, "Failed to resolve DNS: Unable to resolve the hostname.\n");
+            break;
+        }
+
+        cleanup_and_exit(&server_socket, NULL, EXIT_FAILURE);
     }
 
-    if (bind_socket(&server_socket, &address) != 0)
+    if (!bind_socket(&server_socket, &address))
     {
         fprintf(stderr, "Failed to bind socket: %d.\n", WSAGetLastError());
-        close_socket(&server_socket);
-        cleanup_winsock();
-        return 1;
+        cleanup_and_exit(&server_socket, NULL, EXIT_FAILURE);
     }
 
-    if (listen_socket(&server_socket) != 0)
+    if (!listen_socket(&server_socket))
     {
         fprintf(stderr, "Failed to listen socket: %d.\n", WSAGetLastError());
-        close_socket(&server_socket);
-        cleanup_winsock();
-        return 1;
+        cleanup_and_exit(&server_socket, NULL, EXIT_FAILURE);
     }
 
     printf("Waiting connections...\n");
 
     LPFDWATCH main_fdw = fdwatch_new(4096);
+    if (!main_fdw)
+    {
+        fprintf(stderr, "Failed to create fdwatch.\n");
+        cleanup_and_exit(&server_socket, NULL, EXIT_FAILURE);
+    }
+
     fdwatch_add_fd(main_fdw, server_socket, NULL, FDW_READ);
 
     while (1)
@@ -82,7 +86,7 @@ int main()
                     if (accept_result == WSAEWOULDBLOCK)
                         continue;
 
-                    if (accept_result != 0)
+                    if (!accept_result)
                     {
                         fprintf(stderr, "Failed to accept socket: %d.\n", WSAGetLastError());
                         continue;
@@ -95,9 +99,9 @@ int main()
                 continue;
             }
 
-            int iRet = fdwatch_check_event(main_fdw, client_data->socket, event_idx);
+            int event = fdwatch_check_event(main_fdw, client_data->socket, event_idx);
 
-            switch (iRet)
+            switch (event)
             {
             case FDW_READ:
             {
@@ -107,47 +111,27 @@ int main()
                 switch (r)
                 {
                 case RECV_BUFFER_OVERFLOW:
-                {
                     fprintf(stderr, "Max http size reached.\n");
-                    close_socket(&client_data->socket);
-                    fdwatch_del_fd(main_fdw, client_data->socket);
-                    client_data_delete(client_data);
-                    continue;
-                }
-                break;
+                    close_client_session(main_fdw, client_data);
+                    break;
 
                 case RECV_ERROR:
-                {
                     fprintf(stderr, "Failed to recv data: %d.\n", WSAGetLastError());
-                    close_socket(&client_data->socket);
-                    fdwatch_del_fd(main_fdw, client_data->socket);
-                    client_data_delete(client_data);
-                    continue;
-                }
-                break;
+                    close_client_session(main_fdw, client_data);
+                    break;
 
                 case RECV_CLOSED:
-                {
                     fprintf(stderr, "Client close connection.\n");
-                    close_socket(&client_data->socket);
-                    fdwatch_del_fd(main_fdw, client_data->socket);
-                    client_data_delete(client_data);
-                    continue;
-                }
-                break;
+                    close_client_session(main_fdw, client_data);
+                    break;
 
                 case RECV_INCOMPLETE:
-                {
-                    continue;
-                }
-                break;
+                    break;
 
                 case RECV_COMPLETE:
-                {
                     printf("Data received:\n%s\n", client_data->recvbuf);
                     fdwatch_add_fd(main_fdw, client_data->socket, client_data, FDW_WRITE);
-                }
-                break;
+                    break;
                 }
             }
             break;
@@ -171,82 +155,62 @@ int main()
                                                message_length, message);
 
                 ESendResult s = send_all(&client_data->socket, response, response_length, &client_data->sendlen);
-
                 switch (s)
                 {
                 case SEND_BUFFER_OVERFLOW:
-                {
                     fprintf(stderr, "Max http size reached.\n");
-                    close_socket(&client_data->socket);
-                    fdwatch_del_fd(main_fdw, client_data->socket);
-                    client_data_delete(client_data);
-                    continue;
-                }
-                break;
+                    close_client_session(main_fdw, client_data);
+                    break;
 
                 case SEND_ERROR:
-                {
                     fprintf(stderr, "Failed to send data: %d.\n", WSAGetLastError());
-                    close_socket(&client_data->socket);
-                    fdwatch_del_fd(main_fdw, client_data->socket);
-                    client_data_delete(client_data);
-                    continue;
-                }
-                break;
+                    close_client_session(main_fdw, client_data);
+                    break;
 
                 case SEND_INCOMPLETE:
-                {
-                    continue;
-                }
-                break;
+                    break;
 
                 case SEND_COMPLETE:
-                {
                     printf("Sending data completed.\n");
 
                     if (shutdown(client_data->socket, SD_SEND) == SOCKET_ERROR)
-                    {
                         fprintf(stderr, "Shutdown error: %d\n", WSAGetLastError());
-                        close_socket(&client_data->socket);
-                        fdwatch_del_fd(main_fdw, client_data->socket);
-                        client_data_delete(client_data);
-                        continue;
-                    }
 
-                    close_socket(&client_data->socket);
-                    fdwatch_del_fd(main_fdw, client_data->socket);
-                    client_data_delete(client_data);
-                    continue;
-                }
-                break;
+                    close_client_session(main_fdw, client_data);
+                    break;
                 }
             }
             break;
 
             case FDW_EOF:
-                close_socket(&client_data->socket);
-                fdwatch_del_fd(main_fdw, client_data->socket);
-                client_data_delete(client_data);
-                break;
-
             default:
-                close_socket(&client_data->socket);
-                fdwatch_del_fd(main_fdw, client_data->socket);
-                client_data_delete(client_data);
-                fprintf(stderr, "fdwatch_check_event returned unknown %d, socket = %d\n", iRet, client_data->socket);
+                fprintf(stderr, "fdwatch_check_event returned unknown %d, socket = %d\n", event, client_data->socket);
+                close_client_session(main_fdw, client_data);
                 break;
             }
         }
     }
 
-    if (close_socket(&server_socket) != 0)
-    {
-        fprintf(stderr, "Failed to close socket: %d.\n", WSAGetLastError());
-        cleanup_winsock();
-        return 1;
-    }
-
-    fdwatch_delete(main_fdw);
-    cleanup_winsock();
+    cleanup_and_exit(&server_socket, &main_fdw, EXIT_SUCCESS);
     return 0;
+}
+
+int cleanup_and_exit(SOCKET *server_socket, LPFDWATCH *main_fdw, int exit_code)
+{
+    if (server_socket && *server_socket != INVALID_SOCKET)
+        close_socket(server_socket);
+
+    if (main_fdw && *main_fdw)
+        fdwatch_delete(*main_fdw);
+
+    cleanup_winsock();
+    system("pause");
+    exit(exit_code);
+}
+
+void close_client_session(LPFDWATCH main_fdw, CLIENT_DATA_POINTER client_data)
+{
+    close_socket(&client_data->socket);
+    fdwatch_del_fd(main_fdw, client_data->socket);
+    client_data_delete(client_data);
 }

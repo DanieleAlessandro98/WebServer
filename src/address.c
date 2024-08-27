@@ -1,6 +1,6 @@
 #include "address.h"
 
-AddressResult set_address(NetAddress *address, const char *c_szAddr, int port)
+EAddressResult set_address(NetAddress *address, const char *c_szAddr, int port)
 {
     if (is_address_ip(c_szAddr))
     {
