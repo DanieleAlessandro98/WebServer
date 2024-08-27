@@ -13,6 +13,7 @@ add_executable(${PROJECT_NAME}
         src/socket.c
         src/address.c
         src/network_io.c
+        src/fdwatch.c
 )
 
 target_link_libraries(${PROJECT_NAME} Ws2_32)

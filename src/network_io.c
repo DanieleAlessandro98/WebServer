@@ -14,10 +14,7 @@ int recv_all(SOCKET *sock_fd, char *buf, int total_len)
         {
             int err = WSAGetLastError();
             if (err == WSAEWOULDBLOCK)
-            {
-                Sleep(100);
                 continue;
-            }
 
             return SOCKET_ERROR;
         }
@@ -50,10 +47,7 @@ int send_all(SOCKET *sock_fd, const char *buf, int total_len)
         {
             int err = WSAGetLastError();
             if (err == WSAEWOULDBLOCK)
-            {
-                Sleep(100);
                 continue;
-            }
 
             return SOCKET_ERROR;
         }

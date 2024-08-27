@@ -4,6 +4,7 @@
 #include "socket.h"
 #include "address.h"
 #include "network_io.h"
+#include "fdwatch.h"
 
 int main()
 {
@@ -57,68 +58,68 @@ int main()
 
     printf("Waiting connections...\n");
 
+    LPFDWATCH main_fdw = fdwatch_new(4096);
+    fdwatch_add_fd(main_fdw, server_socket, NULL, FDW_READ);
+
     while (1)
     {
-        SOCKET client_socket;
-        int accept_result = accept_socket(&server_socket, &client_socket);
-        if (accept_result == WSAEWOULDBLOCK)
-        {
-            Sleep(100);
-            continue;
-        }
-        else if (accept_result != 0)
-        {
-            fprintf(stderr, "Failed to accept socket: %d.\n", accept_result);
+        int num_events, event_idx;
+        if ((num_events = fdwatch(main_fdw, 0)) < 0)
             break;
-        }
 
-        char recvbuf[MAX_HTTP_REQUEST_SIZE];
-        int recvbuflen = MAX_HTTP_REQUEST_SIZE;
-        int r = recv_all(&client_socket, recvbuf, recvbuflen);
-        if (r == SOCKET_ERROR)
+        SOCKET *d;
+
+        for (event_idx = 0; event_idx < num_events; ++event_idx)
         {
-            fprintf(stderr, "Failed to recv data: %d.\n", WSAGetLastError());
-            close_socket(&client_socket);
-            break;
-        }
+            d = (SOCKET *)fdwatch_get_client_data(main_fdw, event_idx);
 
-        printf("%s\n", recvbuf);
+            if (!d)
+            {
+                if (FDW_READ == fdwatch_check_event(main_fdw, server_socket, event_idx))
+                {
+                    SOCKET client_socket;
+                    int accept_result = accept_socket(&server_socket, &client_socket);
+                    if (accept_result == WSAEWOULDBLOCK)
+                        continue;
 
-        printf("Trying to send data..\n");
+                    if (accept_result != 0)
+                    {
+                        fprintf(stderr, "Failed to accept socket: %d.\n", WSAGetLastError());
+                        continue;
+                    }
 
-        const char *message = "test send text";
-        int message_length = strlen(message);
+                    fdwatch_clear_event(main_fdw, server_socket, event_idx);
+                    fdwatch_add_fd(main_fdw, client_socket, &client_socket, FDW_READ);
+                }
 
-        char response[MAX_HTTP_RESPONSE_SIZE];
-        int response_length = snprintf(response,
-                                       MAX_HTTP_RESPONSE_SIZE,
-                                       "HTTP/1.1 200 OK\r\n"
-                                       "Content-Type: text/plain\r\n"
-                                       "Content-Length: %d\r\n"
-                                       "Connection: close\r\n"
-                                       "\r\n"
-                                       "%s",
-                                       message_length, message);
+                continue;
+            }
 
-        int s = send_all(&client_socket, response, response_length);
-        if (s == SOCKET_ERROR)
-        {
-            fprintf(stderr, "Failed to send data: %d.\n", WSAGetLastError());
-            close_socket(&client_socket);
-            break;
-        }
+            int iRet = fdwatch_check_event(main_fdw, *d, event_idx);
 
-        if (shutdown(client_socket, SD_SEND) == SOCKET_ERROR)
-        {
-            fprintf(stderr, "Shutdown error: %d\n", WSAGetLastError());
-            close_socket(&client_socket);
-            break;
-        }
+            switch (iRet)
+            {
+            case FDW_READ:
+                close_socket(d);
+                fdwatch_del_fd(main_fdw, *d);
+                break;
 
-        if (close_socket(&client_socket) != 0)
-        {
-            fprintf(stderr, "Failed to close client socket: %d.\n", WSAGetLastError());
-            break;
+            case FDW_WRITE:
+                close_socket(d);
+                fdwatch_del_fd(main_fdw, *d);
+                break;
+
+            case FDW_EOF:
+                close_socket(d);
+                fdwatch_del_fd(main_fdw, *d);
+                break;
+
+            default:
+                close_socket(d);
+                fdwatch_del_fd(main_fdw, *d);
+                fprintf(stderr, "fdwatch_check_event returned unknown %d, socket = %d\n", iRet, *d);
+                break;
+            }
         }
     }
 
