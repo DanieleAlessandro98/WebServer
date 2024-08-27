@@ -3,7 +3,24 @@
 
 #include "win_definition.h"
 
-int recv_all(SOCKET *sock_fd, char *buf, int total_len);
-int send_all(SOCKET *sock_fd, const char *buf, int total_len);
+typedef enum
+{
+    RECV_BUFFER_OVERFLOW = -2,
+    RECV_ERROR = -1,
+    RECV_CLOSED = 0,
+    RECV_INCOMPLETE = 1,
+    RECV_COMPLETE = 2
+} ERecvResult;
+
+typedef enum
+{
+    SEND_BUFFER_OVERFLOW = -2,
+    SEND_ERROR = -1,
+    SEND_INCOMPLETE = 1,
+    SEND_COMPLETE = 2
+} ESendResult;
+
+ERecvResult recv_all(SOCKET *sock_fd, char *buf, int *len);
+ESendResult send_all(SOCKET *sock_fd, const char *data, const int len, int *total_sent);
 
 #endif // NETWORK_IO_H

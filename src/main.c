@@ -103,20 +103,52 @@ int main()
             {
                 printf("Trying to recv data..\n");
 
-                char recvbuf[MAX_HTTP_REQUEST_SIZE];
-                int recvbuflen = MAX_HTTP_REQUEST_SIZE;
-                int r = recv_all(&client_data->socket, recvbuf, recvbuflen);
-                if (r == SOCKET_ERROR)
+                ERecvResult r = recv_all(&client_data->socket, client_data->recvbuf, &client_data->recvlen);
+                switch (r)
+                {
+                case RECV_BUFFER_OVERFLOW:
+                {
+                    fprintf(stderr, "Max http size reached.\n");
+                    close_socket(&client_data->socket);
+                    fdwatch_del_fd(main_fdw, client_data->socket);
+                    client_data_delete(client_data);
+                    continue;
+                }
+                break;
+
+                case RECV_ERROR:
                 {
                     fprintf(stderr, "Failed to recv data: %d.\n", WSAGetLastError());
                     close_socket(&client_data->socket);
                     fdwatch_del_fd(main_fdw, client_data->socket);
-                    break;
+                    client_data_delete(client_data);
+                    continue;
                 }
+                break;
 
-                printf("Data received:\n%s\n", recvbuf);
+                case RECV_CLOSED:
+                {
+                    fprintf(stderr, "Client close connection.\n");
+                    close_socket(&client_data->socket);
+                    fdwatch_del_fd(main_fdw, client_data->socket);
+                    client_data_delete(client_data);
+                    continue;
+                }
+                break;
 
-                fdwatch_add_fd(main_fdw, client_data->socket, client_data, FDW_WRITE);
+                case RECV_INCOMPLETE:
+                {
+                    continue;
+                }
+                break;
+
+                case RECV_COMPLETE:
+                {
+                    printf("Data received:\n%s\n", client_data->recvbuf);
+                    fdwatch_add_fd(main_fdw, client_data->socket, client_data, FDW_WRITE);
+                }
+                break;
+                }
             }
             break;
 
@@ -138,39 +170,69 @@ int main()
                                                "%s",
                                                message_length, message);
 
-                int s = send_all(&client_data->socket, response, response_length);
-                if (s == SOCKET_ERROR)
+                ESendResult s = send_all(&client_data->socket, response, response_length, &client_data->sendlen);
+
+                switch (s)
+                {
+                case SEND_BUFFER_OVERFLOW:
+                {
+                    fprintf(stderr, "Max http size reached.\n");
+                    close_socket(&client_data->socket);
+                    fdwatch_del_fd(main_fdw, client_data->socket);
+                    client_data_delete(client_data);
+                    continue;
+                }
+                break;
+
+                case SEND_ERROR:
                 {
                     fprintf(stderr, "Failed to send data: %d.\n", WSAGetLastError());
                     close_socket(&client_data->socket);
                     fdwatch_del_fd(main_fdw, client_data->socket);
-                    break;
+                    client_data_delete(client_data);
+                    continue;
                 }
+                break;
 
-                printf("Sending data completed.\n");
-
-                if (shutdown(client_data->socket, SD_SEND) == SOCKET_ERROR)
+                case SEND_INCOMPLETE:
                 {
-                    fprintf(stderr, "Shutdown error: %d\n", WSAGetLastError());
+                    continue;
+                }
+                break;
+
+                case SEND_COMPLETE:
+                {
+                    printf("Sending data completed.\n");
+
+                    if (shutdown(client_data->socket, SD_SEND) == SOCKET_ERROR)
+                    {
+                        fprintf(stderr, "Shutdown error: %d\n", WSAGetLastError());
+                        close_socket(&client_data->socket);
+                        fdwatch_del_fd(main_fdw, client_data->socket);
+                        client_data_delete(client_data);
+                        continue;
+                    }
+
                     close_socket(&client_data->socket);
                     fdwatch_del_fd(main_fdw, client_data->socket);
-                    break;
+                    client_data_delete(client_data);
+                    continue;
                 }
-
-                close_socket(&client_data->socket);
-                fdwatch_del_fd(main_fdw, client_data->socket);
                 break;
+                }
             }
             break;
 
             case FDW_EOF:
                 close_socket(&client_data->socket);
                 fdwatch_del_fd(main_fdw, client_data->socket);
+                client_data_delete(client_data);
                 break;
 
             default:
                 close_socket(&client_data->socket);
                 fdwatch_del_fd(main_fdw, client_data->socket);
+                client_data_delete(client_data);
                 fprintf(stderr, "fdwatch_check_event returned unknown %d, socket = %d\n", iRet, client_data->socket);
                 break;
             }

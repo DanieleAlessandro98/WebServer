@@ -1,60 +1,49 @@
 #include "network_io.h"
 #include <stdio.h>
 
-int recv_all(SOCKET *sock_fd, char *buf, int total_len)
+ERecvResult recv_all(SOCKET *sock_fd, char *buf, int *len)
 {
-    int current_len = 0;
-    int bytes_left = total_len;
+    if (*len >= MAX_HTTP_REQUEST_SIZE)
+        return RECV_BUFFER_OVERFLOW;
 
-    while (current_len < total_len)
-    {
-        int r = recv(*sock_fd, buf + current_len, bytes_left, 0);
+    int r = recv(*sock_fd,
+                 buf + *len,
+                 MAX_HTTP_REQUEST_SIZE - *len, 0);
 
-        if (r == SOCKET_ERROR)
-        {
-            int err = WSAGetLastError();
-            if (err == WSAEWOULDBLOCK)
-                continue;
+    if (r == SOCKET_ERROR)
+        return RECV_ERROR;
 
-            return SOCKET_ERROR;
-        }
-        else if (r == 0)
-            break;
+    if (r == 0)
+        return RECV_CLOSED;
 
-        current_len += r;
-        bytes_left -= r;
+    *len += r;
+    buf[*len] = 0;
 
-        buf[current_len] = 0;
+    char *q = strstr(buf, "\r\n\r\n");
+    if (!q)
+        return RECV_INCOMPLETE;
 
-        char *q = strstr(buf, "\r\n\r\n");
-        if (q)
-            break;
-    }
-
-    return current_len;
+    return RECV_COMPLETE;
 }
 
-int send_all(SOCKET *sock_fd, const char *buf, int total_len)
+ESendResult send_all(SOCKET *sock_fd, const char *data, const int len, int *total_sent)
 {
-    int current_len = 0;
-    int bytes_left = total_len;
+    if (len >= MAX_HTTP_REQUEST_SIZE)
+        return RECV_BUFFER_OVERFLOW;
 
-    while (current_len < total_len)
-    {
-        int s = send(*sock_fd, buf + current_len, bytes_left, 0);
+    int bytes_left = len - *total_sent;
 
-        if (s == SOCKET_ERROR)
-        {
-            int err = WSAGetLastError();
-            if (err == WSAEWOULDBLOCK)
-                continue;
+    int s = send(*sock_fd,
+                 data + *total_sent,
+                 bytes_left, 0);
 
-            return SOCKET_ERROR;
-        }
+    if (s == SOCKET_ERROR)
+        return SEND_ERROR;
 
-        current_len += s;
-        bytes_left -= s;
-    }
+    *total_sent += s;
 
-    return current_len;
+    if (*total_sent < len)
+        return SEND_INCOMPLETE;
+
+    return SEND_COMPLETE;
 }

@@ -53,6 +53,9 @@ struct fdwatch
 struct clientdata
 {
     SOCKET socket;
+    char recvbuf[MAX_HTTP_REQUEST_SIZE + 1];
+    int recvlen;
+    int sendlen;
 };
 
 extern LPFDWATCH fdwatch_new(int nfiles);

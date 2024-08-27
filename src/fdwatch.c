@@ -33,6 +33,8 @@ CLIENT_DATA_POINTER client_data_new(SOCKET client_socket)
 	CLIENT_DATA_POINTER client_data;
 	CREATE(client_data, CLIENT_DATA, 1);
 	client_data->socket = client_socket;
+	client_data->recvlen = 0;
+	client_data->sendlen = 0;
 
 	return client_data;
 }
