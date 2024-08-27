@@ -100,6 +100,7 @@ int main()
             switch (iRet)
             {
             case FDW_READ:
+            {
                 printf("Trying to recv data..\n");
 
                 char recvbuf[MAX_HTTP_REQUEST_SIZE];
@@ -115,14 +116,52 @@ int main()
 
                 printf("Data received:\n%s\n", recvbuf);
 
-                close_socket(d);
-                fdwatch_del_fd(main_fdw, *d);
-                break;
+                fdwatch_add_fd(main_fdw, *d, d, FDW_WRITE);
+            }
+            break;
 
             case FDW_WRITE:
+            {
+                printf("Trying to send data..\n");
+
+                const char *message = "test send text";
+                int message_length = strlen(message);
+
+                char response[MAX_HTTP_RESPONSE_SIZE];
+                int response_length = snprintf(response,
+                                               MAX_HTTP_RESPONSE_SIZE,
+                                               "HTTP/1.1 200 OK\r\n"
+                                               "Content-Type: text/plain\r\n"
+                                               "Content-Length: %d\r\n"
+                                               "Connection: close\r\n"
+                                               "\r\n"
+                                               "%s",
+                                               message_length, message);
+
+                int s = send_all(d, response, response_length);
+                if (s == SOCKET_ERROR)
+                {
+                    fprintf(stderr, "Failed to send data: %d.\n", WSAGetLastError());
+                    close_socket(d);
+                    fdwatch_del_fd(main_fdw, *d);
+                    break;
+                }
+
+                printf("Sending data completed.\n");
+
+                if (shutdown(*d, SD_SEND) == SOCKET_ERROR)
+                {
+                    fprintf(stderr, "Shutdown error: %d\n", WSAGetLastError());
+                    close_socket(d);
+                    fdwatch_del_fd(main_fdw, *d);
+                    break;
+                }
+
                 close_socket(d);
                 fdwatch_del_fd(main_fdw, *d);
                 break;
+            }
+            break;
 
             case FDW_EOF:
                 close_socket(d);
