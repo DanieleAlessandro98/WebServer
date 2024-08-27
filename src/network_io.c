@@ -11,7 +11,16 @@ int recv_all(SOCKET *sock_fd, char *buf, int total_len)
         int r = recv(*sock_fd, buf + current_len, bytes_left, 0);
 
         if (r == SOCKET_ERROR)
+        {
+            int err = WSAGetLastError();
+            if (err == WSAEWOULDBLOCK)
+            {
+                Sleep(100);
+                continue;
+            }
+
             return SOCKET_ERROR;
+        }
         else if (r == 0)
             break;
 
@@ -38,7 +47,16 @@ int send_all(SOCKET *sock_fd, const char *buf, int total_len)
         int s = send(*sock_fd, buf + current_len, bytes_left, 0);
 
         if (s == SOCKET_ERROR)
+        {
+            int err = WSAGetLastError();
+            if (err == WSAEWOULDBLOCK)
+            {
+                Sleep(100);
+                continue;
+            }
+
             return SOCKET_ERROR;
+        }
 
         current_len += s;
         bytes_left -= s;

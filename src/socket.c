@@ -7,6 +7,11 @@ int create_socket(SOCKET *sock_fd)
     if (*sock_fd == INVALID_SOCKET)
         return WSAGetLastError();
 
+    u_long mode = 1;
+    int result = ioctlsocket(*sock_fd, FIONBIO, &mode);
+    if (result != NO_ERROR)
+        return WSAGetLastError();
+
     return 0;
 }
 

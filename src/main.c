@@ -57,45 +57,69 @@ int main()
 
     printf("Waiting connections...\n");
 
-    SOCKET client_socket;
-    if (accept_socket(&server_socket, &client_socket) != 0)
+    while (1)
     {
-        fprintf(stderr, "Failed to accept socket: %d.\n", WSAGetLastError());
-        close_socket(&client_socket);
-    }
+        SOCKET client_socket;
+        int accept_result = accept_socket(&server_socket, &client_socket);
+        if (accept_result == WSAEWOULDBLOCK)
+        {
+            Sleep(100);
+            continue;
+        }
+        else if (accept_result != 0)
+        {
+            fprintf(stderr, "Failed to accept socket: %d.\n", accept_result);
+            break;
+        }
 
-    char recvbuf[MAX_HTTP_REQUEST_SIZE];
-    int recvbuflen = MAX_HTTP_REQUEST_SIZE;
-    int r = recv_all(&client_socket, recvbuf, recvbuflen);
-    if (r == SOCKET_ERROR)
-    {
-        fprintf(stderr, "Failed to recv data: %d.\n", WSAGetLastError());
-        close_socket(&client_socket);
-    }
+        char recvbuf[MAX_HTTP_REQUEST_SIZE];
+        int recvbuflen = MAX_HTTP_REQUEST_SIZE;
+        int r = recv_all(&client_socket, recvbuf, recvbuflen);
+        if (r == SOCKET_ERROR)
+        {
+            fprintf(stderr, "Failed to recv data: %d.\n", WSAGetLastError());
+            close_socket(&client_socket);
+            break;
+        }
 
-    printf("%s\n", recvbuf);
+        printf("%s\n", recvbuf);
 
-    printf("Trying to send data..\n");
+        printf("Trying to send data..\n");
 
-    const char *message = "test send text";
-    int message_length = strlen(message);
+        const char *message = "test send text";
+        int message_length = strlen(message);
 
-    char response[MAX_HTTP_RESPONSE_SIZE];
-    int response_length = snprintf(response,
-                                   MAX_HTTP_RESPONSE_SIZE,
-                                   "HTTP/1.1 200 OK\r\n"
-                                   "Content-Type: text/plain\r\n"
-                                   "Content-Length: %d\r\n"
-                                   "Connection: close\r\n"
-                                   "\r\n"
-                                   "%s",
-                                   message_length, message);
+        char response[MAX_HTTP_RESPONSE_SIZE];
+        int response_length = snprintf(response,
+                                       MAX_HTTP_RESPONSE_SIZE,
+                                       "HTTP/1.1 200 OK\r\n"
+                                       "Content-Type: text/plain\r\n"
+                                       "Content-Length: %d\r\n"
+                                       "Connection: close\r\n"
+                                       "\r\n"
+                                       "%s",
+                                       message_length, message);
 
-    int s = send_all(&client_socket, response, response_length);
-    if (s == SOCKET_ERROR)
-    {
-        fprintf(stderr, "Failed to send data: %d.\n", WSAGetLastError());
-        close_socket(&client_socket);
+        int s = send_all(&client_socket, response, response_length);
+        if (s == SOCKET_ERROR)
+        {
+            fprintf(stderr, "Failed to send data: %d.\n", WSAGetLastError());
+            close_socket(&client_socket);
+            break;
+        }
+
+        if (shutdown(client_socket, SD_SEND) == SOCKET_ERROR)
+        {
+            fprintf(stderr, "Shutdown error: %d\n", WSAGetLastError());
+            close_socket(&client_socket);
+            break;
+        }
+
+        if (close_socket(&client_socket) != 0)
+        {
+            fprintf(stderr, "Failed to close client socket: %d.\n", WSAGetLastError());
+            break;
+        }
     }
 
     if (close_socket(&server_socket) != 0)
