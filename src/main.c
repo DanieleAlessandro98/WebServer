@@ -100,6 +100,21 @@ int main()
             switch (iRet)
             {
             case FDW_READ:
+                printf("Trying to recv data..\n");
+
+                char recvbuf[MAX_HTTP_REQUEST_SIZE];
+                int recvbuflen = MAX_HTTP_REQUEST_SIZE;
+                int r = recv_all(d, recvbuf, recvbuflen);
+                if (r == SOCKET_ERROR)
+                {
+                    fprintf(stderr, "Failed to recv data: %d.\n", WSAGetLastError());
+                    close_socket(d);
+                    fdwatch_del_fd(main_fdw, *d);
+                    break;
+                }
+
+                printf("Data received:\n%s\n", recvbuf);
+
                 close_socket(d);
                 fdwatch_del_fd(main_fdw, *d);
                 break;
