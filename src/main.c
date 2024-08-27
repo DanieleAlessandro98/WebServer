@@ -246,8 +246,7 @@ int main()
         return 1;
     }
 
-    printf("test\n");
-
+    fdwatch_delete(main_fdw);
     cleanup_winsock();
     return 0;
 }
