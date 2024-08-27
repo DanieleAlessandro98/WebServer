@@ -20,6 +20,9 @@
 typedef struct fdwatch FDWATCH;
 typedef struct fdwatch *LPFDWATCH;
 
+typedef struct clientdata CLIENT_DATA;
+typedef struct clientdata *CLIENT_DATA_POINTER;
+
 enum EFdwatch
 {
     FDW_NONE = 0,
@@ -47,8 +50,15 @@ struct fdwatch
     int *fd_rw;
 };
 
+struct clientdata
+{
+    SOCKET socket;
+};
+
 extern LPFDWATCH fdwatch_new(int nfiles);
+extern CLIENT_DATA_POINTER client_data_new(SOCKET client_socket);
 extern void fdwatch_delete(LPFDWATCH fdw);
+extern void client_data_delete(CLIENT_DATA_POINTER client_data);
 extern int fdwatch_check_fd(LPFDWATCH fdw, SOCKET fd);
 extern int fdwatch_check_event(LPFDWATCH fdw, SOCKET fd, unsigned int event_idx);
 extern void fdwatch_clear_event(LPFDWATCH fdw, SOCKET fd, unsigned int event_idx);

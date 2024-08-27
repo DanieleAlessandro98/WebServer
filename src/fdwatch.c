@@ -28,6 +28,15 @@ LPFDWATCH fdwatch_new(int nfiles)
 	return (fdw);
 }
 
+CLIENT_DATA_POINTER client_data_new(SOCKET client_socket)
+{
+	CLIENT_DATA_POINTER client_data;
+	CREATE(client_data, CLIENT_DATA, 1);
+	client_data->socket = client_socket;
+
+	return client_data;
+}
+
 void fdwatch_delete(LPFDWATCH fdw)
 {
 	free(fdw->fd_data);
@@ -35,6 +44,11 @@ void fdwatch_delete(LPFDWATCH fdw)
 	free(fdw->select_fds);
 	free(fdw->select_rfdidx);
 	free(fdw);
+}
+
+void client_data_delete(CLIENT_DATA_POINTER client_data)
+{
+	free(client_data);
 }
 
 static int fdwatch_get_fdidx(LPFDWATCH fdw, SOCKET fd)

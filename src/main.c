@@ -67,13 +67,13 @@ int main()
         if ((num_events = fdwatch(main_fdw, 0)) < 0)
             break;
 
-        SOCKET *d;
+        CLIENT_DATA_POINTER client_data;
 
         for (event_idx = 0; event_idx < num_events; ++event_idx)
         {
-            d = (SOCKET *)fdwatch_get_client_data(main_fdw, event_idx);
+            client_data = (CLIENT_DATA_POINTER)fdwatch_get_client_data(main_fdw, event_idx);
 
-            if (!d)
+            if (!client_data)
             {
                 if (FDW_READ == fdwatch_check_event(main_fdw, server_socket, event_idx))
                 {
@@ -89,13 +89,13 @@ int main()
                     }
 
                     fdwatch_clear_event(main_fdw, server_socket, event_idx);
-                    fdwatch_add_fd(main_fdw, client_socket, &client_socket, FDW_READ);
+                    fdwatch_add_fd(main_fdw, client_socket, client_data_new(client_socket), FDW_READ);
                 }
 
                 continue;
             }
 
-            int iRet = fdwatch_check_event(main_fdw, *d, event_idx);
+            int iRet = fdwatch_check_event(main_fdw, client_data->socket, event_idx);
 
             switch (iRet)
             {
@@ -105,18 +105,18 @@ int main()
 
                 char recvbuf[MAX_HTTP_REQUEST_SIZE];
                 int recvbuflen = MAX_HTTP_REQUEST_SIZE;
-                int r = recv_all(d, recvbuf, recvbuflen);
+                int r = recv_all(&client_data->socket, recvbuf, recvbuflen);
                 if (r == SOCKET_ERROR)
                 {
                     fprintf(stderr, "Failed to recv data: %d.\n", WSAGetLastError());
-                    close_socket(d);
-                    fdwatch_del_fd(main_fdw, *d);
+                    close_socket(&client_data->socket);
+                    fdwatch_del_fd(main_fdw, client_data->socket);
                     break;
                 }
 
                 printf("Data received:\n%s\n", recvbuf);
 
-                fdwatch_add_fd(main_fdw, *d, d, FDW_WRITE);
+                fdwatch_add_fd(main_fdw, client_data->socket, client_data, FDW_WRITE);
             }
             break;
 
@@ -138,40 +138,40 @@ int main()
                                                "%s",
                                                message_length, message);
 
-                int s = send_all(d, response, response_length);
+                int s = send_all(&client_data->socket, response, response_length);
                 if (s == SOCKET_ERROR)
                 {
                     fprintf(stderr, "Failed to send data: %d.\n", WSAGetLastError());
-                    close_socket(d);
-                    fdwatch_del_fd(main_fdw, *d);
+                    close_socket(&client_data->socket);
+                    fdwatch_del_fd(main_fdw, client_data->socket);
                     break;
                 }
 
                 printf("Sending data completed.\n");
 
-                if (shutdown(*d, SD_SEND) == SOCKET_ERROR)
+                if (shutdown(client_data->socket, SD_SEND) == SOCKET_ERROR)
                 {
                     fprintf(stderr, "Shutdown error: %d\n", WSAGetLastError());
-                    close_socket(d);
-                    fdwatch_del_fd(main_fdw, *d);
+                    close_socket(&client_data->socket);
+                    fdwatch_del_fd(main_fdw, client_data->socket);
                     break;
                 }
 
-                close_socket(d);
-                fdwatch_del_fd(main_fdw, *d);
+                close_socket(&client_data->socket);
+                fdwatch_del_fd(main_fdw, client_data->socket);
                 break;
             }
             break;
 
             case FDW_EOF:
-                close_socket(d);
-                fdwatch_del_fd(main_fdw, *d);
+                close_socket(&client_data->socket);
+                fdwatch_del_fd(main_fdw, client_data->socket);
                 break;
 
             default:
-                close_socket(d);
-                fdwatch_del_fd(main_fdw, *d);
-                fprintf(stderr, "fdwatch_check_event returned unknown %d, socket = %d\n", iRet, *d);
+                close_socket(&client_data->socket);
+                fdwatch_del_fd(main_fdw, client_data->socket);
+                fprintf(stderr, "fdwatch_check_event returned unknown %d, socket = %d\n", iRet, client_data->socket);
                 break;
             }
         }
