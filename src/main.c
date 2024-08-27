@@ -8,7 +8,6 @@
 #include "connection_manager.h"
 
 int cleanup_and_exit(SOCKET *server_socket, LPFDWATCH *main_fdw, int exit_code);
-void close_client_session(LPFDWATCH main_fdw, CLIENT_DATA_POINTER client_data);
 
 int main()
 {
@@ -119,6 +118,8 @@ int main()
 
 int cleanup_and_exit(SOCKET *server_socket, LPFDWATCH *main_fdw, int exit_code)
 {
+    printf("\n...Cleanup resources...\n");
+
     if (server_socket && *server_socket != INVALID_SOCKET)
         close_socket(server_socket);
 
@@ -126,6 +127,8 @@ int cleanup_and_exit(SOCKET *server_socket, LPFDWATCH *main_fdw, int exit_code)
         fdwatch_delete(*main_fdw);
 
     cleanup_winsock();
+
+    printf("\n...Finished...\n");
     system("pause");
     exit(exit_code);
 }
