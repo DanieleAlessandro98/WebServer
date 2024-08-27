@@ -14,6 +14,7 @@ add_executable(${PROJECT_NAME}
         src/address.c
         src/network_io.c
         src/fdwatch.c
+        src/connection_manager.c
 )
 
 target_link_libraries(${PROJECT_NAME} Ws2_32)
