@@ -1,9 +1,21 @@
 #include "http.h"
 #include "win_definition.h"
+#include "file.h"
+
+static const ContentTypeMapping allowed_content_type[] = {
+    {".html", "text/html"},
+    {".css", "text/css"},
+    {".js", "application/javascript"},
+    {".png", "image/png"},
+    {".jpg", "image/jpeg"},
+    {".gif", "image/gif"},
+};
 
 void handle_http_request(LPFDWATCH fdw, CLIENT_DATA_POINTER client_data)
 {
-    HttpStatus status = process_http_request(client_data->recvbuf);
+    char full_path[MAX_PATH_LENGTH + sizeof(PUBLIC_DIR) + 1];
+
+    HttpStatus status = process_http_request(client_data->recvbuf, full_path);
     switch (status)
     {
     case HTTP_BAD_REQUEST:
@@ -15,12 +27,12 @@ void handle_http_request(LPFDWATCH fdw, CLIENT_DATA_POINTER client_data)
         break;
 
     case HTTP_OK:
-        send_200(fdw, client_data);
+        send_resource(fdw, client_data, full_path);
         break;
     }
 }
 
-HttpStatus process_http_request(const char *request)
+HttpStatus process_http_request(const char *request, char *full_path)
 {
     if (request == NULL || strlen(request) > MAX_HTTP_RESPONSE_SIZE)
         return HTTP_BAD_REQUEST;
@@ -35,10 +47,10 @@ HttpStatus process_http_request(const char *request)
     if (strstr(request, "Host:") == NULL)
         return HTTP_BAD_REQUEST;
 
-    return process_http_path(request);
+    return process_http_path(request, full_path);
 }
 
-HttpStatus process_http_path(const char *request)
+HttpStatus process_http_path(const char *request, char *full_path)
 {
     const char *path_start = request + 4;
     const char *path_end = strstr(path_start, " ");
@@ -61,8 +73,56 @@ HttpStatus process_http_path(const char *request)
         strncpy(path, "/index.html", sizeof(path) - 1);
         path[sizeof(path) - 1] = '\0';
     }
-    
+
+    HttpStatus s = is_content_type_allowed(path);
+    if (s != HTTP_OK)
+        return s;
+
+    snprintf(full_path, MAX_PATH_LENGTH + sizeof(PUBLIC_DIR) + 1, "%s%s", PUBLIC_DIR, path);
+#if defined(_WIN32)
+    char *p = full_path;
+    while (*p)
+    {
+        if (*p == '/')
+            *p = '\\';
+        ++p;
+    }
+#endif
+
+    if (!is_file_exists(full_path))
+        return HTTP_NOT_FOUND;
+
     return HTTP_OK;
+}
+
+HttpStatus is_content_type_allowed(const char *path)
+{
+    const char *dot = strrchr(path, '.');
+    if (!dot)
+        return HTTP_NOT_FOUND;
+
+    for (size_t i = 0; i < sizeof(allowed_content_type) / sizeof(allowed_content_type[0]); ++i)
+    {
+        if (strcmp(dot, allowed_content_type[i].extension) == 0)
+            return HTTP_OK;
+    }
+
+    return HTTP_NOT_FOUND;
+}
+
+const char *get_content_type(const char *full_path)
+{
+    const char *dot = strrchr(full_path, '.');
+    if (!dot)
+        return "application/octet-stream";
+
+    for (size_t i = 0; i < sizeof(allowed_content_type) / sizeof(allowed_content_type[0]); ++i)
+    {
+        if (strcmp(dot, allowed_content_type[i].extension) == 0)
+            return allowed_content_type[i].content_type;
+    }
+
+    return "application/octet-stream";
 }
 
 void send_400(LPFDWATCH fdw, CLIENT_DATA_POINTER client_data)
@@ -109,24 +169,21 @@ void send_404(LPFDWATCH fdw, CLIENT_DATA_POINTER client_data)
     fdwatch_add_fd(fdw, client_data->socket, client_data, FDW_WRITE);
 }
 
-void send_200(LPFDWATCH fdw, CLIENT_DATA_POINTER client_data)
+void send_resource(LPFDWATCH fdw, CLIENT_DATA_POINTER client_data, const char *full_path)
 {
-    const char *message = "<html><body><h1>200 OK</h1></body></html>";
-    int message_length = strlen(message);
+    int header_length = snprintf(client_data->sendbuf, sizeof(client_data->sendbuf),
+                                 "HTTP/1.1 200 OK\r\n"
+                                 "Content-Type: %s\r\n"
+                                 "Content-Length: %zu\r\n"
+                                 "Connection: close\r\n"
+                                 "\r\n",
+                                 get_file_lenght(full_path), get_content_type(full_path));
 
-    char response[MAX_HTTP_RESPONSE_SIZE];
-    int response_length = snprintf(response,
-                                   MAX_HTTP_RESPONSE_SIZE,
-                                   "HTTP/1.1 200 OK\r\n"
-                                   "Content-Type: text/html\r\n"
-                                   "Content-Length: %d\r\n"
-                                   "Connection: close\r\n"
-                                   "\r\n"
-                                   "%s",
-                                   message_length, message);
+    size_t body_lenght = read_file_into_buffer(full_path,
+                                               client_data->sendbuf + header_length,
+                                               sizeof(client_data->sendbuf) - header_length);
 
-    snprintf(client_data->sendbuf, sizeof(client_data->sendbuf), "%s", response);
-    client_data->totalsendlen = response_length;
+    client_data->totalsendlen = header_length + body_lenght;
 
     fdwatch_add_fd(fdw, client_data->socket, client_data, FDW_WRITE);
 }

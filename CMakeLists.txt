@@ -16,6 +16,7 @@ add_executable(${PROJECT_NAME}
         src/fdwatch.c
         src/connection_manager.c
         src/http.c
+        src/file.c
 )
 
 target_link_libraries(${PROJECT_NAME} Ws2_32)
