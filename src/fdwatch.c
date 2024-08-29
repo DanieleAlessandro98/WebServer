@@ -35,6 +35,7 @@ CLIENT_DATA_POINTER client_data_new(SOCKET client_socket)
 	client_data->socket = client_socket;
 	client_data->recvlen = 0;
 	client_data->sendlen = 0;
+	client_data->totalsendlen = 0;
 
 	return client_data;
 }

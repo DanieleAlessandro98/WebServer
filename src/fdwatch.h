@@ -68,8 +68,12 @@ struct fdwatch
 struct clientdata
 {
     SOCKET socket;
+
     char recvbuf[MAX_HTTP_REQUEST_SIZE + 1];
     int recvlen;
+
+    char sendbuf[MAX_HTTP_RESPONSE_SIZE + 1];
+    int totalsendlen;
     int sendlen;
 };
 

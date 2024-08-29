@@ -6,6 +6,7 @@
 #include "network_io.h"
 #include "fdwatch.h"
 #include "connection_manager.h"
+#include "http.h"
 
 int cleanup_and_exit(SOCKET *server_socket, LPFDWATCH *main_fdw, int exit_code);
 
@@ -93,6 +94,8 @@ int main()
             {
                 printf("Trying to recv data..\n");
                 process_client_read(main_fdw, client_data);
+
+                handle_http_request(main_fdw, client_data);
             }
             break;
 

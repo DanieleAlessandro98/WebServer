@@ -44,28 +44,13 @@ void process_client_read(LPFDWATCH main_fdw, CLIENT_DATA_POINTER client_data)
 
     case RECV_COMPLETE:
         printf("Data received:\n%s\n", client_data->recvbuf);
-        fdwatch_add_fd(main_fdw, client_data->socket, client_data, FDW_WRITE);
         break;
     }
 }
 
 void process_client_write(LPFDWATCH main_fdw, CLIENT_DATA_POINTER client_data)
 {
-    const char *message = "test send text";
-    int message_length = strlen(message);
-
-    char response[MAX_HTTP_RESPONSE_SIZE];
-    int response_length = snprintf(response,
-                                   MAX_HTTP_RESPONSE_SIZE,
-                                   "HTTP/1.1 200 OK\r\n"
-                                   "Content-Type: text/plain\r\n"
-                                   "Content-Length: %d\r\n"
-                                   "Connection: close\r\n"
-                                   "\r\n"
-                                   "%s",
-                                   message_length, message);
-
-    ESendResult s = send_all(&client_data->socket, response, response_length, &client_data->sendlen);
+    ESendResult s = send_all(&client_data->socket, client_data->sendbuf, client_data->totalsendlen, &client_data->sendlen);
     switch (s)
     {
     case SEND_BUFFER_OVERFLOW:
