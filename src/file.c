@@ -3,6 +3,15 @@
 #include <stdio.h>
 #include "http.h"
 
+const char *get_file_extension(const char *full_path)
+{
+    const char *dot = strrchr(full_path, '.');
+    if (!dot)
+        return NULL;
+
+    return dot;
+}
+
 bool is_file_exists(const char *full_path)
 {
     FILE *fp = fopen(full_path, "rb");

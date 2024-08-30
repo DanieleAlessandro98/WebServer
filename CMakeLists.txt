@@ -17,6 +17,7 @@ add_executable(${PROJECT_NAME}
         src/connection_manager.c
         src/http.c
         src/file.c
+        src/mime.c
 )
 
 target_link_libraries(${PROJECT_NAME} Ws2_32)

@@ -1,15 +1,7 @@
 #include "http.h"
 #include "win_definition.h"
 #include "file.h"
-
-static const ContentTypeMapping allowed_content_type[] = {
-    {".html", "text/html"},
-    {".css", "text/css"},
-    {".js", "application/javascript"},
-    {".png", "image/png"},
-    {".jpg", "image/jpeg"},
-    {".gif", "image/gif"},
-};
+#include "mime.h"
 
 void handle_http_request(LPFDWATCH fdw, CLIENT_DATA_POINTER client_data)
 {
@@ -74,9 +66,8 @@ HttpStatus process_http_path(const char *request, char *full_path)
         path[sizeof(path) - 1] = '\0';
     }
 
-    HttpStatus s = is_content_type_allowed(path);
-    if (s != HTTP_OK)
-        return s;
+    if (!is_content_type_allowed(path))
+        return HTTP_NOT_FOUND;
 
     snprintf(full_path, MAX_PATH_LENGTH + sizeof(PUBLIC_DIR) + 1, "%s%s", PUBLIC_DIR, path);
 #if defined(_WIN32)
@@ -93,36 +84,6 @@ HttpStatus process_http_path(const char *request, char *full_path)
         return HTTP_NOT_FOUND;
 
     return HTTP_OK;
-}
-
-HttpStatus is_content_type_allowed(const char *path)
-{
-    const char *dot = strrchr(path, '.');
-    if (!dot)
-        return HTTP_NOT_FOUND;
-
-    for (size_t i = 0; i < sizeof(allowed_content_type) / sizeof(allowed_content_type[0]); ++i)
-    {
-        if (strcmp(dot, allowed_content_type[i].extension) == 0)
-            return HTTP_OK;
-    }
-
-    return HTTP_NOT_FOUND;
-}
-
-const char *get_content_type(const char *full_path)
-{
-    const char *dot = strrchr(full_path, '.');
-    if (!dot)
-        return "application/octet-stream";
-
-    for (size_t i = 0; i < sizeof(allowed_content_type) / sizeof(allowed_content_type[0]); ++i)
-    {
-        if (strcmp(dot, allowed_content_type[i].extension) == 0)
-            return allowed_content_type[i].content_type;
-    }
-
-    return "application/octet-stream";
 }
 
 void send_400(LPFDWATCH fdw, CLIENT_DATA_POINTER client_data)
@@ -177,7 +138,7 @@ void send_resource(LPFDWATCH fdw, CLIENT_DATA_POINTER client_data, const char *f
                                  "Content-Length: %zu\r\n"
                                  "Connection: close\r\n"
                                  "\r\n",
-                                 get_file_lenght(full_path), get_content_type(full_path));
+                                 get_content_type(full_path), get_file_lenght(full_path));
 
     size_t body_lenght = read_file_into_buffer(full_path,
                                                client_data->sendbuf + header_length,
