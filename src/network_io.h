@@ -20,7 +20,7 @@ typedef enum
     SEND_COMPLETE = 2
 } ESendResult;
 
-ERecvResult recv_all(SOCKET *sock_fd, char *buf, int *len);
+ERecvResult recv_all(SOCKET *sock_fd, char** buf, int* len, int* buf_size);
 ESendResult send_all(SOCKET *sock_fd, const char *data, const int len, int *total_sent);
 
 #endif // NETWORK_IO_H

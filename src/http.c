@@ -2,6 +2,7 @@
 #include "win_definition.h"
 #include "file.h"
 #include "mime.h"
+#include "buffer.h"
 
 void handle_http_request(LPFDWATCH fdw, CLIENT_DATA_POINTER client_data)
 {
@@ -26,7 +27,7 @@ void handle_http_request(LPFDWATCH fdw, CLIENT_DATA_POINTER client_data)
 
 HttpStatus process_http_request(const char *request, char *full_path)
 {
-    if (request == NULL || strlen(request) > MAX_HTTP_RESPONSE_SIZE)
+    if (request == NULL)
         return HTTP_BAD_REQUEST;
 
     if (strncmp(request, "GET ", 4) != 0)
@@ -91,9 +92,9 @@ void send_400(LPFDWATCH fdw, CLIENT_DATA_POINTER client_data)
     const char *message = "<html><body><h1>400 Bad Request</h1></body></html>";
     int message_length = strlen(message);
 
-    char response[MAX_HTTP_RESPONSE_SIZE];
+    char response[DEFAULT_HTTP_RESPONSE_SIZE];
     int response_length = snprintf(response,
-                                   MAX_HTTP_RESPONSE_SIZE,
+                                   DEFAULT_HTTP_RESPONSE_SIZE,
                                    "HTTP/1.1 400 Bad Request\r\n"
                                    "Content-Type: text/html\r\n"
                                    "Content-Length: %d\r\n"
@@ -102,7 +103,10 @@ void send_400(LPFDWATCH fdw, CLIENT_DATA_POINTER client_data)
                                    "%s",
                                    message_length, message);
 
-    snprintf(client_data->sendbuf, sizeof(client_data->sendbuf), "%s", response);
+    if (!adjust_send_buffer(&client_data->sendbuf, &client_data->sendbufsize, response_length))
+        return;
+
+    snprintf(client_data->sendbuf, client_data->sendbufsize, "%s", response);
     client_data->totalsendlen = response_length;
 
     fdwatch_add_fd(fdw, client_data->socket, client_data, FDW_WRITE);
@@ -113,9 +117,9 @@ void send_404(LPFDWATCH fdw, CLIENT_DATA_POINTER client_data)
     const char *message = "<html><body><h1>404 Not Found</h1></body></html>";
     int message_length = strlen(message);
 
-    char response[MAX_HTTP_RESPONSE_SIZE];
+    char response[DEFAULT_HTTP_RESPONSE_SIZE];
     int response_length = snprintf(response,
-                                   MAX_HTTP_RESPONSE_SIZE,
+                                   DEFAULT_HTTP_RESPONSE_SIZE,
                                    "HTTP/1.1 404 Not Found\r\n"
                                    "Content-Type: text/html\r\n"
                                    "Content-Length: %d\r\n"
@@ -124,7 +128,10 @@ void send_404(LPFDWATCH fdw, CLIENT_DATA_POINTER client_data)
                                    "%s",
                                    message_length, message);
 
-    snprintf(client_data->sendbuf, sizeof(client_data->sendbuf), "%s", response);
+    if (!adjust_send_buffer(&client_data->sendbuf, &client_data->sendbufsize, response_length))
+        return;
+
+    snprintf(client_data->sendbuf, client_data->sendbufsize, "%s", response);
     client_data->totalsendlen = response_length;
 
     fdwatch_add_fd(fdw, client_data->socket, client_data, FDW_WRITE);
@@ -132,17 +139,31 @@ void send_404(LPFDWATCH fdw, CLIENT_DATA_POINTER client_data)
 
 void send_resource(LPFDWATCH fdw, CLIENT_DATA_POINTER client_data, const char *full_path)
 {
-    int header_length = snprintf(client_data->sendbuf, sizeof(client_data->sendbuf),
+    const char *content_type = get_content_type(full_path);
+    size_t content_length = get_file_lenght(full_path);
+
+    int header_length = snprintf(NULL, 0,
                                  "HTTP/1.1 200 OK\r\n"
                                  "Content-Type: %s\r\n"
                                  "Content-Length: %zu\r\n"
                                  "Connection: close\r\n"
                                  "\r\n",
-                                 get_content_type(full_path), get_file_lenght(full_path));
+                                 content_type, content_length);
+
+    if (!adjust_send_buffer(&client_data->sendbuf, &client_data->sendbufsize, header_length + content_length))
+        return;
+
+    header_length = snprintf(client_data->sendbuf, client_data->sendbufsize,
+                             "HTTP/1.1 200 OK\r\n"
+                             "Content-Type: %s\r\n"
+                             "Content-Length: %zu\r\n"
+                             "Connection: close\r\n"
+                             "\r\n",
+                             content_type, content_length);
 
     size_t body_lenght = read_file_into_buffer(full_path,
                                                client_data->sendbuf + header_length,
-                                               sizeof(client_data->sendbuf) - header_length);
+                                               client_data->sendbufsize - header_length);
 
     client_data->totalsendlen = header_length + body_lenght;
 

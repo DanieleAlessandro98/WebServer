@@ -33,8 +33,14 @@ CLIENT_DATA_POINTER client_data_new(SOCKET client_socket)
 	CLIENT_DATA_POINTER client_data;
 	CREATE(client_data, CLIENT_DATA, 1);
 	client_data->socket = client_socket;
+
 	client_data->recvlen = 0;
+	client_data->recvbufsize = DEFAULT_HTTP_REQUEST_SIZE + 1;
+	CREATE(client_data->recvbuf, char, client_data->recvbufsize);
+
 	client_data->sendlen = 0;
+	client_data->sendbufsize = DEFAULT_HTTP_RESPONSE_SIZE + 1;
+	CREATE(client_data->sendbuf, char, client_data->sendbufsize);
 	client_data->totalsendlen = 0;
 
 	return client_data;
@@ -51,6 +57,8 @@ void fdwatch_delete(LPFDWATCH fdw)
 
 void client_data_delete(CLIENT_DATA_POINTER client_data)
 {
+	free(client_data->recvbuf);
+	free(client_data->sendbuf);
 	free(client_data);
 }
 

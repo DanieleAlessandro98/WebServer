@@ -22,7 +22,7 @@ void process_new_connection(SOCKET server_socket, LPFDWATCH main_fdw, unsigned i
 
 void process_client_read(LPFDWATCH main_fdw, CLIENT_DATA_POINTER client_data)
 {
-    ERecvResult r = recv_all(&client_data->socket, client_data->recvbuf, &client_data->recvlen);
+    ERecvResult r = recv_all(&client_data->socket, &client_data->recvbuf, &client_data->recvlen, &client_data->recvbufsize);
     switch (r)
     {
     case RECV_BUFFER_OVERFLOW:

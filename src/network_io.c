@@ -1,14 +1,22 @@
 #include "network_io.h"
 #include <stdio.h>
+#include "buffer.h"
 
-ERecvResult recv_all(SOCKET *sock_fd, char *buf, int *len)
+ERecvResult recv_all(SOCKET *sock_fd, char **buf, int *len, int *buf_size)
 {
-    if (*len >= MAX_HTTP_REQUEST_SIZE)
-        return RECV_BUFFER_OVERFLOW;
+    int remaining_space = *buf_size - *len - 1;
+
+    if (remaining_space <= 0)
+    {
+        if (!adjust_recv_buffer(buf, buf_size, *len))
+            return RECV_BUFFER_OVERFLOW;
+
+        remaining_space = *buf_size - *len - 1;
+    }
 
     int r = recv(*sock_fd,
-                 buf + *len,
-                 MAX_HTTP_REQUEST_SIZE - *len, 0);
+                 *buf + *len,
+                 remaining_space, 0);
 
     if (r == SOCKET_ERROR)
         return RECV_ERROR;
@@ -17,9 +25,9 @@ ERecvResult recv_all(SOCKET *sock_fd, char *buf, int *len)
         return RECV_CLOSED;
 
     *len += r;
-    buf[*len] = 0;
+    (*buf)[*len] = '\0';
 
-    char *q = strstr(buf, "\r\n\r\n");
+    char *q = strstr(*buf, "\r\n\r\n");
     if (!q)
         return RECV_INCOMPLETE;
 
@@ -28,9 +36,6 @@ ERecvResult recv_all(SOCKET *sock_fd, char *buf, int *len)
 
 ESendResult send_all(SOCKET *sock_fd, const char *data, const int len, int *total_sent)
 {
-    if (len >= MAX_HTTP_REQUEST_SIZE)
-        return RECV_BUFFER_OVERFLOW;
-
     int bytes_left = len - *total_sent;
 
     int s = send(*sock_fd,

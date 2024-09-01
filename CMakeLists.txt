@@ -18,6 +18,7 @@ add_executable(${PROJECT_NAME}
         src/http.c
         src/file.c
         src/mime.c
+        src/buffer.c
 )
 
 target_link_libraries(${PROJECT_NAME} Ws2_32)

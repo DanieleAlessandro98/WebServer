@@ -69,10 +69,12 @@ struct clientdata
 {
     SOCKET socket;
 
-    char recvbuf[MAX_HTTP_REQUEST_SIZE + 1];
+    char *recvbuf;
+    int recvbufsize;
     int recvlen;
 
-    char sendbuf[MAX_HTTP_RESPONSE_SIZE + 1];
+    char *sendbuf;
+    int sendbufsize;
     int totalsendlen;
     int sendlen;
 };
