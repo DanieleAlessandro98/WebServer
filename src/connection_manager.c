@@ -1,6 +1,7 @@
 #include "connection_manager.h"
 #include "network_io.h"
 #include "socket.h"
+#include "http.h"
 
 void process_new_connection(SOCKET server_socket, LPFDWATCH main_fdw, unsigned int event_idx)
 {
@@ -44,6 +45,8 @@ void process_client_read(LPFDWATCH main_fdw, CLIENT_DATA_POINTER client_data)
 
     case RECV_COMPLETE:
         printf("Data received:\n%s\n", client_data->recvbuf);
+        handle_http_request(main_fdw, client_data);
+
         break;
     }
 }

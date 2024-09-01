@@ -6,7 +6,6 @@
 #include "network_io.h"
 #include "fdwatch.h"
 #include "connection_manager.h"
-#include "http.h"
 
 int cleanup_and_exit(SOCKET *server_socket, LPFDWATCH *main_fdw, int exit_code);
 
@@ -94,8 +93,6 @@ int main()
             {
                 printf("Trying to recv data..\n");
                 process_client_read(main_fdw, client_data);
-
-                handle_http_request(main_fdw, client_data);
             }
             break;
 
@@ -108,7 +105,7 @@ int main()
 
             case FDW_EOF:
             default:
-                fprintf(stderr, "fdwatch_check_event returned unknown %d, socket = %d\n", event, client_data->socket);
+                fprintf(stderr, "fdwatch_check_event returned unknown %d, socket = %lld\n", event, client_data->socket);
                 close_client_session(main_fdw, client_data);
                 break;
             }
