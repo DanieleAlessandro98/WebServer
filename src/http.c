@@ -71,15 +71,8 @@ HttpStatus process_http_path(const char *request, char *full_path)
         return HTTP_NOT_FOUND;
 
     snprintf(full_path, MAX_PATH_LENGTH + sizeof(PUBLIC_DIR) + 1, "%s%s", PUBLIC_DIR, path);
-#if defined(_WIN32)
-    char *p = full_path;
-    while (*p)
-    {
-        if (*p == '/')
-            *p = '\\';
-        ++p;
-    }
-#endif
+
+    normalize_path(full_path);
 
     if (!is_file_exists(full_path))
         return HTTP_NOT_FOUND;
@@ -89,58 +82,109 @@ HttpStatus process_http_path(const char *request, char *full_path)
 
 void send_400(LPFDWATCH fdw, CLIENT_DATA_POINTER client_data)
 {
-    const char *message = "<html><body><h1>400 Bad Request</h1></body></html>";
-    int message_length = strlen(message);
+    char full_path[MAX_PATH_LENGTH + sizeof(PUBLIC_DIR) + 1];
+    snprintf(full_path, MAX_PATH_LENGTH + sizeof(PUBLIC_DIR) + 1, "%s%s", PUBLIC_DIR, "/400.html");
 
-    char response[DEFAULT_HTTP_RESPONSE_SIZE];
-    int response_length = snprintf(response,
-                                   DEFAULT_HTTP_RESPONSE_SIZE,
-                                   "HTTP/1.1 400 Bad Request\r\n"
-                                   "Content-Type: text/html\r\n"
-                                   "Content-Length: %d\r\n"
-                                   "Connection: close\r\n"
-                                   "\r\n"
-                                   "%s",
-                                   message_length, message);
+    normalize_path(full_path);
 
-    if (!adjust_send_buffer(&client_data->sendbuf, &client_data->sendbufsize, response_length))
+    FILE_DATA_POINTER file_data = get_file_data(full_path);
+    if (file_data == NULL)
+    {
+        fprintf(stderr, "cannot get file data: %s\n", full_path);
+        exit(3);
+    }
+
+    const char *content_type = file_data->content_type;
+    size_t content_length = file_data->size;
+
+    int header_length = snprintf(NULL, 0,
+                                 "HTTP/1.1 400 Bad Request\r\n"
+                                 "Content-Type: %s\r\n"
+                                 "Content-Length: %zu\r\n"
+                                 "Connection: close\r\n"
+                                 "\r\n",
+                                 content_type, content_length);
+
+    if (!adjust_send_buffer(&client_data->sendbuf, &client_data->sendbufsize, header_length + content_length))
+    {
+        free_file_data(file_data);
         return;
+    }
 
-    snprintf(client_data->sendbuf, client_data->sendbufsize, "%s", response);
-    client_data->totalsendlen = response_length;
+    int response_length = snprintf(client_data->sendbuf, client_data->sendbufsize,
+                                   "HTTP/1.1 400 Bad Request\r\n"
+                                   "Content-Type: %s\r\n"
+                                   "Content-Length: %zu\r\n"
+                                   "Connection: close\r\n"
+                                   "\r\n",
+                                   content_type, content_length);
+
+    memcpy(client_data->sendbuf + response_length, file_data->data, file_data->size);
+
+    client_data->totalsendlen = response_length + content_length;
 
     fdwatch_add_fd(fdw, client_data->socket, client_data, FDW_WRITE);
+    free_file_data(file_data);
 }
 
 void send_404(LPFDWATCH fdw, CLIENT_DATA_POINTER client_data)
 {
-    const char *message = "<html><body><h1>404 Not Found</h1></body></html>";
-    int message_length = strlen(message);
+    char full_path[MAX_PATH_LENGTH + sizeof(PUBLIC_DIR) + 1];
+    snprintf(full_path, MAX_PATH_LENGTH + sizeof(PUBLIC_DIR) + 1, "%s%s", PUBLIC_DIR, "/404.html");
 
-    char response[DEFAULT_HTTP_RESPONSE_SIZE];
-    int response_length = snprintf(response,
-                                   DEFAULT_HTTP_RESPONSE_SIZE,
-                                   "HTTP/1.1 404 Not Found\r\n"
-                                   "Content-Type: text/html\r\n"
-                                   "Content-Length: %d\r\n"
-                                   "Connection: close\r\n"
-                                   "\r\n"
-                                   "%s",
-                                   message_length, message);
+    normalize_path(full_path);
 
-    if (!adjust_send_buffer(&client_data->sendbuf, &client_data->sendbufsize, response_length))
+    FILE_DATA_POINTER file_data = get_file_data(full_path);
+    if (file_data == NULL)
+    {
+        fprintf(stderr, "cannot get file data: %s\n", full_path);
+        exit(3);
+    }
+
+    const char *content_type = file_data->content_type;
+    size_t content_length = file_data->size;
+
+    int header_length = snprintf(NULL, 0,
+                                 "HTTP/1.1 404 Not Found\r\n"
+                                 "Content-Type: %s\r\n"
+                                 "Content-Length: %zu\r\n"
+                                 "Connection: close\r\n"
+                                 "\r\n",
+                                 content_type, content_length);
+
+    if (!adjust_send_buffer(&client_data->sendbuf, &client_data->sendbufsize, header_length + content_length))
+    {
+        free_file_data(file_data);
         return;
+    }
 
-    snprintf(client_data->sendbuf, client_data->sendbufsize, "%s", response);
-    client_data->totalsendlen = response_length;
+    int response_length = snprintf(client_data->sendbuf, client_data->sendbufsize,
+                                   "HTTP/1.1 404 Not Found\r\n"
+                                   "Content-Type: %s\r\n"
+                                   "Content-Length: %zu\r\n"
+                                   "Connection: close\r\n"
+                                   "\r\n",
+                                   content_type, content_length);
+
+    memcpy(client_data->sendbuf + response_length, file_data->data, file_data->size);
+
+    client_data->totalsendlen = response_length + content_length;
 
     fdwatch_add_fd(fdw, client_data->socket, client_data, FDW_WRITE);
+    free_file_data(file_data);
 }
 
 void send_resource(LPFDWATCH fdw, CLIENT_DATA_POINTER client_data, const char *full_path)
 {
-    const char *content_type = get_content_type(full_path);
-    size_t content_length = get_file_lenght(full_path);
+    FILE_DATA_POINTER file_data = get_file_data(full_path);
+    if (file_data == NULL)
+    {
+        fprintf(stderr, "cannot get file data: %s\n", full_path);
+        exit(3);
+    }
+
+    const char *content_type = file_data->content_type;
+    size_t content_length = file_data->size;
 
     int header_length = snprintf(NULL, 0,
                                  "HTTP/1.1 200 OK\r\n"
@@ -151,21 +195,23 @@ void send_resource(LPFDWATCH fdw, CLIENT_DATA_POINTER client_data, const char *f
                                  content_type, content_length);
 
     if (!adjust_send_buffer(&client_data->sendbuf, &client_data->sendbufsize, header_length + content_length))
+    {
+        free_file_data(file_data);
         return;
+    }
 
-    header_length = snprintf(client_data->sendbuf, client_data->sendbufsize,
-                             "HTTP/1.1 200 OK\r\n"
-                             "Content-Type: %s\r\n"
-                             "Content-Length: %zu\r\n"
-                             "Connection: close\r\n"
-                             "\r\n",
-                             content_type, content_length);
+    int response_length = snprintf(client_data->sendbuf, client_data->sendbufsize,
+                                   "HTTP/1.1 200 OK\r\n"
+                                   "Content-Type: %s\r\n"
+                                   "Content-Length: %zu\r\n"
+                                   "Connection: close\r\n"
+                                   "\r\n",
+                                   content_type, content_length);
 
-    size_t body_lenght = read_file_into_buffer(full_path,
-                                               client_data->sendbuf + header_length,
-                                               client_data->sendbufsize - header_length);
+    memcpy(client_data->sendbuf + response_length, file_data->data, file_data->size);
 
-    client_data->totalsendlen = header_length + body_lenght;
+    client_data->totalsendlen = response_length + content_length;
 
     fdwatch_add_fd(fdw, client_data->socket, client_data, FDW_WRITE);
+    free_file_data(file_data);
 }
