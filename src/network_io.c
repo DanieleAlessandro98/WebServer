@@ -14,9 +14,11 @@ ERecvResult recv_all(SOCKET *sock_fd, char **buf, int *len, int *buf_size)
         remaining_space = *buf_size - *len - 1;
     }
 
+    int recv_size = (remaining_space > MAX_RECV_SEGMENT_SIZE) ? MAX_RECV_SEGMENT_SIZE : remaining_space;
+
     int r = recv(*sock_fd,
                  *buf + *len,
-                 remaining_space, 0);
+                 recv_size, 0);
 
     if (r == SOCKET_ERROR)
         return RECV_ERROR;
@@ -38,9 +40,11 @@ ESendResult send_all(SOCKET *sock_fd, const char *data, const int len, int *tota
 {
     int bytes_left = len - *total_sent;
 
+    int send_size = (bytes_left > MAX_SEND_SEGMENT_SIZE) ? MAX_SEND_SEGMENT_SIZE : bytes_left;
+
     int s = send(*sock_fd,
                  data + *total_sent,
-                 bytes_left, 0);
+                 send_size, 0);
 
     if (s == SOCKET_ERROR)
         return SEND_ERROR;
