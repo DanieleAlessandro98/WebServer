@@ -23,6 +23,9 @@ int hex_to_dec(char c)
 
 void normalize_path(char *str)
 {
+    if (str == NULL)
+        return;
+
     char *src = str;
     char *dest = str;
 
@@ -55,25 +58,6 @@ void normalize_path(char *str)
     }
 
     *dest = '\0';
-}
-
-const char *get_file_extension(const char *full_path)
-{
-    const char *dot = strrchr(full_path, '.');
-    if (!dot)
-        return NULL;
-
-    return dot;
-}
-
-bool is_file_exists(const char *full_path)
-{
-    FILE *fp = fopen(full_path, "rb");
-    if (!fp)
-        return false;
-
-    fclose(fp);
-    return true;
 }
 
 FILE_DATA_POINTER get_file_data(const char *full_path)
@@ -158,4 +142,23 @@ void free_file_data(FILE_DATA_POINTER file_data)
     free(file_data->data);
     free(file_data->content_type);
     free(file_data);
+}
+
+const char *get_file_extension(const char *full_path)
+{
+    const char *dot = strrchr(full_path, '.');
+    if (!dot)
+        return NULL;
+
+    return dot;
+}
+
+bool is_file_exists(const char *full_path)
+{
+    FILE *fp = fopen(full_path, "rb");
+    if (!fp)
+        return false;
+
+    fclose(fp);
+    return true;
 }

@@ -19,7 +19,14 @@
 #define MAX_RECV_SEGMENT_SIZE 4 * 1024 // 4KB
 #define MAX_SEND_SEGMENT_SIZE 4 * 1024 // 4KB
 
+#define MAX_HTTP_RESPONSE_HEADER_SIZE 1024
+
 #define MAX_PATH_LENGTH 100
 #define MAX_FILE_EXTENSION_LEN 6
 
 #define PUBLIC_DIR "public"
+
+#define HOMEPAGE_FILE "index.html"
+
+#define ERROR_400_PAGE "public\\400.html"
+#define ERROR_404_PAGE "public\\404.html"

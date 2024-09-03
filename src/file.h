@@ -15,6 +15,7 @@ struct filedata
 };
 
 void normalize_path(char *str);
+
 FILE_DATA_POINTER get_file_data(const char *full_path);
 void free_file_data(FILE_DATA_POINTER file_data);
 
