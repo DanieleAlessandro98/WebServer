@@ -1,7 +1,7 @@
 #ifndef NETWORK_IO_H
 #define NETWORK_IO_H
 
-#include "win_definition.h"
+#include "definitions.h"
 
 typedef enum
 {
@@ -23,4 +23,4 @@ typedef enum
 ERecvResult recv_all(SOCKET *sock_fd, char** buf, int* len, int* buf_size);
 ESendResult send_all(SOCKET *sock_fd, const char *data, const int len, int *total_sent);
 
-#endif // NETWORK_IO_H
+#endif

@@ -5,7 +5,7 @@
 #include <limits.h>
 #include <stdlib.h>
 #include <stdio.h>
-#include "win_definition.h"
+#include "definitions.h"
 
 #define CREATE(result, type, number)                                          \
     do                                                                        \

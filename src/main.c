@@ -1,11 +1,11 @@
-#include "win_definition.h"
+#include "definitions.h"
 #include <stdio.h>
 #include "winsock_utils.h"
 #include "socket.h"
 #include "address.h"
 #include "network_io.h"
 #include "fdwatch.h"
-#include "connection_manager.h"
+#include "connection.h"
 
 int cleanup_and_exit(SOCKET *server_socket, LPFDWATCH *main_fdw, int exit_code);
 

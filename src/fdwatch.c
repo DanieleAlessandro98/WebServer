@@ -1,4 +1,3 @@
-#define __LIBTHECORE__
 #include "fdwatch.h"
 
 int MIN(int a, int b)

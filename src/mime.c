@@ -2,7 +2,7 @@
 #include <stddef.h>
 #include <string.h>
 #include <ctype.h>
-#include "win_definition.h"
+#include "definitions.h"
 #include "file.h"
 
 static const ContentType allowed_content_type[] = {

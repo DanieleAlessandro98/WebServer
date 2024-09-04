@@ -1,7 +1,7 @@
 #ifndef ADDRESS_H
 #define ADDRESS_H
 
-#include "win_definition.h"
+#include "definitions.h"
 #include <stdbool.h>
 
 typedef struct
@@ -24,4 +24,4 @@ bool is_address_ip(const char *c_szAddr);
 int inet_pton(int af, const char *src, void *dst);
 const char *inet_ntop(int af, const void *src, char *dst, socklen_t size);
 
-#endif // ADDRESS_H
+#endif

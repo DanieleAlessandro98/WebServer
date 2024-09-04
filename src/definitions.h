@@ -1,3 +1,6 @@
+#ifndef DEFINITIONS_H
+#define DEFINITIONS_H
+
 #ifndef WIN32_LEAN_AND_MEAN
 #define WIN32_LEAN_AND_MEAN
 #endif
@@ -30,3 +33,5 @@
 
 #define ERROR_400_PAGE "public\\400.html"
 #define ERROR_404_PAGE "public\\404.html"
+
+#endif

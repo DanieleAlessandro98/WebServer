@@ -1,7 +1,7 @@
 #ifndef CONNECTION_MANAGER_H
 #define CONNECTION_MANAGER_H
 
-#include "win_definition.h"
+#include "definitions.h"
 #include "fdwatch.h"
 
 void process_new_connection(SOCKET server_socket, LPFDWATCH main_fdw, unsigned int event_idx);

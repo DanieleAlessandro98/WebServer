@@ -6,4 +6,4 @@
 bool initialize_winsock();
 void cleanup_winsock();
 
-#endif // WINSOCK_UTILS_H
+#endif
