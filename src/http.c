@@ -73,10 +73,7 @@ HttpStatus process_http_path(const char *request, char *full_path)
         return HTTP_BAD_REQUEST;
 
     if (strcmp(path, "/") == 0)
-    {
-        strncpy(path, "/" HOMEPAGE_FILE, MAX_PATH_LENGTH);
-        path[MAX_PATH_LENGTH] = '\0';
-    }
+        snprintf(path, sizeof(path), "/%s", HOMEPAGE_FILE);
 
     return process_http_file(path, full_path);
 }

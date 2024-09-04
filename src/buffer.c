@@ -14,7 +14,7 @@ static size_t calculate_new_buffer_size(size_t current_size, size_t required_siz
     return (new_size > required_size) ? new_size : required_size;
 }
 
-static void resize_buffer(char **buffer, int *buffer_size, size_t new_size)
+static void resize_buffer(char **buffer, size_t *buffer_size, size_t new_size)
 {
     char *temp_buffer = realloc(*buffer, new_size);
     if (!temp_buffer)
@@ -29,7 +29,7 @@ static void resize_buffer(char **buffer, int *buffer_size, size_t new_size)
     *buffer_size = new_size;
 }
 
-bool adjust_recv_buffer(char **buffer, int *buffer_size, size_t data_length)
+bool adjust_recv_buffer(char **buffer, size_t *buffer_size, size_t data_length)
 {
     size_t required_size = data_length + 1;
 
@@ -45,7 +45,7 @@ bool adjust_recv_buffer(char **buffer, int *buffer_size, size_t data_length)
     return true;
 }
 
-bool adjust_send_buffer(char **buffer, int *buffer_size, size_t required_size)
+bool adjust_send_buffer(char **buffer, size_t *buffer_size, size_t required_size)
 {
     if (required_size >= *buffer_size)
     {

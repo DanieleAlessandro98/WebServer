@@ -33,7 +33,9 @@ static const char *find_content_type(const char *extension)
         return NULL;
 
     char extension_lower[MAX_FILE_EXTENSION_LEN];
-    strcpy(extension_lower, extension);
+    strncpy(extension_lower, extension, MAX_FILE_EXTENSION_LEN - 1);
+    extension_lower[MAX_FILE_EXTENSION_LEN - 1] = '\0';
+
     to_lowercase(extension_lower);
 
     size_t num_types = sizeof(allowed_content_type) / sizeof(allowed_content_type[0]);

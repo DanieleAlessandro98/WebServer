@@ -6,6 +6,8 @@ project(WebServer)
 # Output directory binary
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/../bin)
 
+add_compile_definitions(_CRT_SECURE_NO_WARNINGS)
+
 # Create the executable
 add_executable(${PROJECT_NAME}
         src/main.c

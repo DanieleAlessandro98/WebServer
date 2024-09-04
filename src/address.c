@@ -1,4 +1,5 @@
 #include "address.h"
+#include <stdlib.h>
 
 EAddressResult set_address(NetAddress *address, const char *c_szAddr, int port)
 {
@@ -20,7 +21,7 @@ EAddressResult set_address(NetAddress *address, const char *c_szAddr, int port)
 bool set_address_ip(NetAddress *address, const char *c_szIP)
 {
     struct in_addr addr;
-    if (inet_pton(AF_INET, c_szIP, &addr) != 1 || addr.S_un.S_addr == INADDR_NONE)
+    if (my_inet_pton(AF_INET, c_szIP, &addr) != 1 || addr.S_un.S_addr == INADDR_NONE)
         return false;
 
     address->sockAddrIn.sin_addr.s_addr = addr.S_un.S_addr;
@@ -60,10 +61,10 @@ void set_address_port(NetAddress *address, int port)
 bool is_address_ip(const char *c_szAddr)
 {
     struct in_addr addr;
-    return inet_pton(AF_INET, c_szAddr, &addr) == 1;
+    return my_inet_pton(AF_INET, c_szAddr, &addr) == 1;
 }
 
-int inet_pton(int af, const char *src, void *dst)
+int my_inet_pton(int af, const char *src, void *dst)
 {
     struct sockaddr_storage ss;
     int size = sizeof(ss);
@@ -71,16 +72,22 @@ int inet_pton(int af, const char *src, void *dst)
 
     ZeroMemory(&ss, sizeof(ss));
     /* stupid non-const API */
-    strncpy(src_copy, src, INET6_ADDRSTRLEN + 1);
-    src_copy[INET6_ADDRSTRLEN] = 0;
+    strncpy(src_copy, src, INET6_ADDRSTRLEN);
+    src_copy[INET6_ADDRSTRLEN] = '\0';
 
-    if (WSAStringToAddress(src_copy, af, NULL, (struct sockaddr *)&ss, &size) == 0)
+    wchar_t src_copy_wide[INET6_ADDRSTRLEN + 1];
+    ZeroMemory(src_copy_wide, sizeof(src_copy_wide));
+    mbstowcs(src_copy_wide, src_copy, INET6_ADDRSTRLEN);
+    src_copy_wide[INET6_ADDRSTRLEN] = L'\0';
+
+    if (WSAStringToAddressW(src_copy_wide, af, NULL, (struct sockaddr *)&ss, &size) == 0)
     {
         switch (af)
         {
         case AF_INET:
             *(struct in_addr *)dst = ((struct sockaddr_in *)&ss)->sin_addr;
             return 1;
+
         case AF_INET6:
             *(struct in6_addr *)dst = ((struct sockaddr_in6 *)&ss)->sin6_addr;
             return 1;
@@ -89,7 +96,7 @@ int inet_pton(int af, const char *src, void *dst)
     return 0;
 }
 
-const char *inet_ntop(int af, const void *src, char *dst, socklen_t size)
+const char *my_inet_ntop(int af, const void *src, char *dst, socklen_t size)
 {
     struct sockaddr_storage ss;
     unsigned long s = size;
@@ -108,6 +115,25 @@ const char *inet_ntop(int af, const void *src, char *dst, socklen_t size)
     default:
         return NULL;
     }
-    /* cannot direclty use &size because of strict aliasing rules */
-    return (WSAAddressToString((struct sockaddr *)&ss, sizeof(ss), NULL, dst, &s) == 0) ? dst : NULL;
+
+    wchar_t dst_wide[INET6_ADDRSTRLEN + 1];
+    ZeroMemory(dst_wide, sizeof(dst_wide));
+
+    /* cannot directly use &size because of strict aliasing rules */
+    if (WSAAddressToStringW((struct sockaddr *)&ss, sizeof(ss), NULL, dst_wide, &s) == 0)
+    {
+        if (size > 0)
+        {
+            size_t converted_size = wcstombs(dst, dst_wide, size - 1);
+
+            if (converted_size != (size_t)-1 && converted_size < size)
+                dst[converted_size] = '\0';
+            else
+                dst[0] = '\0';
+        }
+        else
+            dst[0] = '\0';
+    }
+
+    return NULL;
 }

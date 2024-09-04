@@ -7,14 +7,16 @@
 #include <stdio.h>
 #include "definitions.h"
 
-#define CREATE(result, type, number)                                          \
-    do                                                                        \
-    {                                                                         \
-        if (!((result) = (type *)calloc((number), sizeof(type))))             \
-        {                                                                     \
-            fprintf(stderr, "calloc failed [%d] %s", errno, strerror(errno)); \
-            abort();                                                          \
-        }                                                                     \
+#define CREATE(result, type, number)                                       \
+    do                                                                     \
+    {                                                                      \
+        if (!((result) = (type *)calloc((number), sizeof(type))))          \
+        {                                                                  \
+            char error_buffer[256];                                        \
+            strerror_s(error_buffer, sizeof(error_buffer), errno);         \
+            fprintf(stderr, "calloc failed [%d] %s", errno, error_buffer); \
+            abort();                                                       \
+        }                                                                  \
     } while (0)
 
 typedef struct fdwatch FDWATCH;
@@ -70,13 +72,13 @@ struct clientdata
     SOCKET socket;
 
     char *recvbuf;
-    int recvbufsize;
-    int recvlen;
+    size_t recvbufsize;
+    size_t recvlen;
 
     char *sendbuf;
-    int sendbufsize;
-    int totalsendlen;
-    int sendlen;
+    size_t sendbufsize;
+    size_t totalsendlen;
+    size_t sendlen;
 };
 
 // Initializes the watcher

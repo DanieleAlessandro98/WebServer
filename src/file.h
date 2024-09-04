@@ -10,7 +10,7 @@ typedef struct filedata *FILE_DATA_POINTER;
 struct filedata
 {
     void *data;
-    int size;
+    size_t size;
     void *content_type;
 };
 
