@@ -6,6 +6,7 @@
 #include "buffer.h"
 #include "mime.h"
 #include <ctype.h>
+#include <string.h>
 
 int hex_to_dec(char c)
 {

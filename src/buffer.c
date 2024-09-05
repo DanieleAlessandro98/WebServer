@@ -20,7 +20,7 @@ static void resize_buffer(char **buffer, size_t *buffer_size, size_t new_size)
     if (!temp_buffer)
     {
         char error_msg[256];
-        strerror_s(error_msg, sizeof(error_msg), errno);
+        snprintf(error_msg, sizeof(error_msg), "%s", strerror(errno));
         fprintf(stderr, "Error: realloc failed [%d] %s\n", errno, error_msg);
         exit(3);
     }

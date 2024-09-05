@@ -21,7 +21,10 @@ bool set_address_ip(NetAddress *address, const char *c_szIP);
 bool set_address_dsn(NetAddress *address, const char *c_szDNS);
 void set_address_port(NetAddress *address, int port);
 bool is_address_ip(const char *c_szAddr);
+
+#ifdef _WIN32
 int my_inet_pton(int af, const char *src, void *dst);
 const char *my_inet_ntop(int af, const void *src, char *dst, socklen_t size);
+#endif
 
 #endif

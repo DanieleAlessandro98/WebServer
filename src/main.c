@@ -1,6 +1,5 @@
 #include "definitions.h"
 #include <stdio.h>
-#include "winsock_utils.h"
 #include "socket.h"
 #include "address.h"
 #include "network_io.h"
@@ -11,21 +10,23 @@ int cleanup_and_exit(SOCKET *server_socket, LPFDWATCH *main_fdw, int exit_code);
 
 int main()
 {
+#ifdef _WIN32
     if (!initialize_winsock())
     {
-        fprintf(stderr, "Failed to initialize Winsock: %d.\n", WSAGetLastError());
+        fprintf(stderr, "Failed to initialize Winsock: %d.\n", GETSOCKETERROR());
         return EXIT_FAILURE;
     }
+#endif
 
     SOCKET server_socket;
     if (!create_socket(&server_socket))
     {
-        fprintf(stderr, "Failed to create socket: %d.\n", WSAGetLastError());
+        fprintf(stderr, "Failed to create socket: %d.\n", GETSOCKETERROR());
         cleanup_and_exit(NULL, NULL, EXIT_FAILURE);
     }
 
     NetAddress address;
-    EAddressResult address_result = set_address(&address, "localhost", 8080);
+    EAddressResult address_result = set_address(&address, "0.0.0.0", 8080);
     if (address_result != ADDRESS_SUCCESS)
     {
         switch (address_result)
@@ -44,13 +45,13 @@ int main()
 
     if (!bind_socket(&server_socket, &address))
     {
-        fprintf(stderr, "Failed to bind socket: %d.\n", WSAGetLastError());
+        fprintf(stderr, "Failed to bind socket: %d.\n", GETSOCKETERROR());
         cleanup_and_exit(&server_socket, NULL, EXIT_FAILURE);
     }
 
     if (!listen_socket(&server_socket))
     {
-        fprintf(stderr, "Failed to listen socket: %d.\n", WSAGetLastError());
+        fprintf(stderr, "Failed to listen socket: %d.\n", GETSOCKETERROR());
         cleanup_and_exit(&server_socket, NULL, EXIT_FAILURE);
     }
 
@@ -126,9 +127,14 @@ int cleanup_and_exit(SOCKET *server_socket, LPFDWATCH *main_fdw, int exit_code)
     if (main_fdw && *main_fdw)
         fdwatch_delete(*main_fdw);
 
+#ifdef _WIN32
     cleanup_winsock();
+#endif
 
     printf("\n...Finished...\n");
-    system("pause");
+
+    printf("Press Enter to continue...");
+    getchar();
+
     exit(exit_code);
 }

@@ -7,10 +7,19 @@ bool create_socket(SOCKET *sock_fd)
     if (*sock_fd == INVALID_SOCKET)
         return false;
 
+#ifdef _WIN32
     u_long mode = 1;
     int result = ioctlsocket(*sock_fd, FIONBIO, &mode);
     if (result != NO_ERROR)
         return false;
+#else
+    int flags = fcntl(*sock_fd, F_GETFL, 0);
+    if (flags == -1)
+        return false;
+
+    if (fcntl(*sock_fd, F_SETFL, flags | O_NONBLOCK) == -1)
+        return false;
+#endif
 
     return true;
 }
@@ -44,5 +53,5 @@ bool accept_socket(SOCKET *sock_fd_server, SOCKET *sock_fd_client)
 
 void close_socket(SOCKET *sock_fd)
 {
-    closesocket(*sock_fd);
+    CLOSESOCKET(*sock_fd);
 }

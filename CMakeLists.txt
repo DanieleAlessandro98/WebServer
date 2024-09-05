@@ -8,10 +8,9 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/../bin)
 
 add_compile_definitions(_CRT_SECURE_NO_WARNINGS)
 
-# Create the executable
-add_executable(${PROJECT_NAME}
+# Source files
+set(SOURCES
         src/main.c
-        src/winsock_utils.c
         src/socket.c
         src/address.c
         src/network_io.c
@@ -23,4 +22,17 @@ add_executable(${PROJECT_NAME}
         src/buffer.c
 )
 
-target_link_libraries(${PROJECT_NAME} Ws2_32)
+# Add specific OS source files
+if (WIN32)
+    list(APPEND SOURCES
+                src/winsock_utils.c
+        )
+endif()
+
+# Create the executable
+add_executable(${PROJECT_NAME} ${SOURCES})
+
+# Add specific OS libs
+if (WIN32)
+    target_link_libraries(${PROJECT_NAME} Ws2_32)
+endif()

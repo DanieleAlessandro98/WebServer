@@ -6,17 +6,18 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include "definitions.h"
+#include <string.h>
 
-#define CREATE(result, type, number)                                       \
-    do                                                                     \
-    {                                                                      \
-        if (!((result) = (type *)calloc((number), sizeof(type))))          \
-        {                                                                  \
-            char error_buffer[256];                                        \
-            strerror_s(error_buffer, sizeof(error_buffer), errno);         \
-            fprintf(stderr, "calloc failed [%d] %s", errno, error_buffer); \
-            abort();                                                       \
-        }                                                                  \
+#define CREATE(result, type, number)                                             \
+    do                                                                           \
+    {                                                                            \
+        if (!((result) = (type *)calloc((number), sizeof(type))))                \
+        {                                                                        \
+            char error_buffer[256];                                              \
+            snprintf(error_buffer, sizeof(error_buffer), "%s", strerror(errno)); \
+            fprintf(stderr, "calloc failed [%d] %s\n", errno, error_buffer);     \
+            abort();                                                             \
+        }                                                                        \
     } while (0)
 
 typedef struct fdwatch FDWATCH;

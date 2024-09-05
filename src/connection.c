@@ -6,13 +6,13 @@
 void process_new_connection(SOCKET server_socket, LPFDWATCH main_fdw, unsigned int event_idx)
 {
     SOCKET client_socket;
-    int accept_result = accept_socket(&server_socket, &client_socket);
-    if (accept_result == WSAEWOULDBLOCK)
-        return;
-
+    bool accept_result = accept_socket(&server_socket, &client_socket);
     if (!accept_result)
     {
-        fprintf(stderr, "Failed to accept socket: %d.\n", WSAGetLastError());
+        if (SOCKET_WOULDBLOCK())
+            return;
+
+        fprintf(stderr, "Failed to accept socket: %d.\n", GETSOCKETERROR());
         return;
     }
 
@@ -31,7 +31,7 @@ void process_client_read(LPFDWATCH main_fdw, CLIENT_DATA_POINTER client_data)
         break;
 
     case RECV_ERROR:
-        fprintf(stderr, "Failed to recv data: %d.\n", WSAGetLastError());
+        fprintf(stderr, "Failed to recv data: %d.\n", GETSOCKETERROR());
         close_client_session(main_fdw, client_data);
         break;
 
@@ -62,7 +62,7 @@ void process_client_write(LPFDWATCH main_fdw, CLIENT_DATA_POINTER client_data)
         break;
 
     case SEND_ERROR:
-        fprintf(stderr, "Failed to send data: %d.\n", WSAGetLastError());
+        fprintf(stderr, "Failed to send data: %d.\n", GETSOCKETERROR());
         close_client_session(main_fdw, client_data);
         break;
 
@@ -72,8 +72,8 @@ void process_client_write(LPFDWATCH main_fdw, CLIENT_DATA_POINTER client_data)
     case SEND_COMPLETE:
         printf("Sending data completed.\n");
 
-        if (shutdown(client_data->socket, SD_SEND) == SOCKET_ERROR)
-            fprintf(stderr, "Shutdown error: %d\n", WSAGetLastError());
+        if (shutdown(client_data->socket, SOCKET_SHUTDOWN_WRITE) == SOCKET_ERROR)
+            fprintf(stderr, "Shutdown error: %d\n", GETSOCKETERROR());
 
         close_client_session(main_fdw, client_data);
         break;

@@ -1,5 +1,6 @@
 #include "address.h"
 #include <stdlib.h>
+#include <string.h>
 
 EAddressResult set_address(NetAddress *address, const char *c_szAddr, int port)
 {
@@ -21,10 +22,19 @@ EAddressResult set_address(NetAddress *address, const char *c_szAddr, int port)
 bool set_address_ip(NetAddress *address, const char *c_szIP)
 {
     struct in_addr addr;
-    if (my_inet_pton(AF_INET, c_szIP, &addr) != 1 || addr.S_un.S_addr == INADDR_NONE)
+    if (INET_PTON(AF_INET, c_szIP, &addr) != 1
+#ifdef _WIN32
+        || addr.S_un.S_addr == INADDR_NONE)
+#else
+        || addr.s_addr == INADDR_NONE)
+#endif
         return false;
 
+#ifdef _WIN32
     address->sockAddrIn.sin_addr.s_addr = addr.S_un.S_addr;
+#else
+    address->sockAddrIn.sin_addr.s_addr = addr.s_addr;
+#endif
     address->sockAddrIn.sin_family = AF_INET;
 
     return true;
@@ -61,9 +71,10 @@ void set_address_port(NetAddress *address, int port)
 bool is_address_ip(const char *c_szAddr)
 {
     struct in_addr addr;
-    return my_inet_pton(AF_INET, c_szAddr, &addr) == 1;
+    return INET_PTON(AF_INET, c_szAddr, &addr) == 1;
 }
 
+#ifdef _WIN32
 int my_inet_pton(int af, const char *src, void *dst)
 {
     struct sockaddr_storage ss;
@@ -137,3 +148,4 @@ const char *my_inet_ntop(int af, const void *src, char *dst, socklen_t size)
 
     return NULL;
 }
+#endif

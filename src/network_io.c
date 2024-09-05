@@ -1,6 +1,7 @@
 #include "network_io.h"
 #include <stdio.h>
 #include "buffer.h"
+#include <string.h>
 
 ERecvResult recv_all(SOCKET *sock_fd, char **buf, size_t *len, size_t *buf_size)
 {

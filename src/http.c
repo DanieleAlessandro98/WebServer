@@ -3,6 +3,7 @@
 #include "file.h"
 #include "mime.h"
 #include "buffer.h"
+#include <string.h>
 
 void handle_http_request(LPFDWATCH fdw, CLIENT_DATA_POINTER client_data)
 {
