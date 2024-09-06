@@ -65,6 +65,10 @@ struct fdwatch
 
     // Flags that indicate the events being monitored for each file descriptor (reading, writing, or both)
     int *fd_rw;
+
+#ifndef _WIN32
+    int max_fd;
+#endif
 };
 
 // Structure that defines the data for each connected client

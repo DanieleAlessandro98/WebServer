@@ -20,6 +20,9 @@ LPFDWATCH fdwatch_new(int nfiles)
 	CREATE(fdw->select_rfdidx, int, nfiles);
 
 	fdw->nselect_fds = 0;
+#ifndef _WIN32
+	fdw->max_fd = -1;
+#endif
 
 	CREATE(fdw->fd_rw, int, nfiles);
 	CREATE(fdw->fd_data, void *, nfiles);
@@ -90,6 +93,11 @@ void fdwatch_add_fd(LPFDWATCH fdw, SOCKET fd, void *client_data, int rw)
 
 	fdw->fd_data[idx] = client_data;
 
+#ifndef _WIN32
+	if (fd > fdw->max_fd)
+		fdw->max_fd = fd;
+#endif
+
 	if (rw & FDW_READ)
 		FD_SET(fd, &fdw->rfd_set);
 
@@ -112,6 +120,19 @@ void fdwatch_del_fd(LPFDWATCH fdw, SOCKET fd)
 	fdw->fd_data[idx] = fdw->fd_data[fdw->nselect_fds];
 	fdw->fd_rw[idx] = fdw->fd_rw[fdw->nselect_fds];
 
+#ifndef _WIN32
+	if (fd == fdw->max_fd)
+	{
+		fdw->max_fd = -1;
+
+		for (int i = 0; i < fdw->nselect_fds; ++i)
+		{
+			if (fdw->select_fds[i] > fdw->max_fd)
+				fdw->max_fd = fdw->select_fds[i];
+		}
+	}
+#endif
+
 	FD_CLR(fd, &fdw->rfd_set);
 	FD_CLR(fd, &fdw->wfd_set);
 }
@@ -128,12 +149,30 @@ int fdwatch(LPFDWATCH fdw, struct timeval *timeout)
 	{
 		tv.tv_sec = 0;
 		tv.tv_usec = 0;
-		r = select(0, &fdw->working_rfd_set, &fdw->working_wfd_set, (fd_set *)0, &tv);
+		r = select(
+#ifndef _WIN32
+			fdw->max_fd + 1,
+#else
+			0,
+#endif
+			&fdw->working_rfd_set,
+			&fdw->working_wfd_set,
+			(fd_set *)0,
+			&tv);
 	}
 	else
 	{
 		tv = *timeout;
-		r = select(0, &fdw->working_rfd_set, &fdw->working_wfd_set, (fd_set *)0, &tv);
+		r = select(
+#ifndef _WIN32
+			fdw->max_fd + 1,
+#else
+			0,
+#endif
+			&fdw->working_rfd_set,
+			&fdw->working_wfd_set,
+			(fd_set *)0,
+			&tv);
 	}
 
 	if (r == -1)
