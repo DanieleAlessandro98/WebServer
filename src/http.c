@@ -7,6 +7,9 @@
 
 void handle_http_request(LPFDWATCH fdw, CLIENT_DATA_POINTER client_data)
 {
+    if (!client_data)
+        return;
+
     char full_path[MAX_PATH_LENGTH + sizeof(PUBLIC_DIR) + 1];
     RESPONSE_STATUS response_status;
 
@@ -108,6 +111,9 @@ void create_http_header(char *buffer, size_t buffer_size, RESPONSE_STATUS respon
 
 void send_file_response(LPFDWATCH fdw, CLIENT_DATA_POINTER client_data, RESPONSE_STATUS response_status, char *full_path)
 {
+    if (!client_data)
+        return;
+
     normalize_path(full_path);
 
     FILE_DATA_POINTER file_data = get_file_data(full_path);
@@ -125,6 +131,9 @@ void send_file_response(LPFDWATCH fdw, CLIENT_DATA_POINTER client_data, RESPONSE
 
 void send_internal_server_error(LPFDWATCH fdw, CLIENT_DATA_POINTER client_data)
 {
+    if (!client_data)
+        return;
+
     const char *message = "<html><body><h1>500 Internal Server Error</h1></body></html>";
 
     RESPONSE_STATUS response_status = {500, "Internal Server Error"};
@@ -135,6 +144,9 @@ void send_internal_server_error(LPFDWATCH fdw, CLIENT_DATA_POINTER client_data)
 
 void send_response(LPFDWATCH fdw, CLIENT_DATA_POINTER client_data, RESPONSE_STATUS response_status, HTTP_CONTENT_DATA content_data)
 {
+    if (!client_data)
+        return;
+
     char header[MAX_HTTP_RESPONSE_HEADER_SIZE];
     create_http_header(header, sizeof(header), response_status, content_data);
 

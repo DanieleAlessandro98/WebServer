@@ -59,8 +59,15 @@ void fdwatch_delete(LPFDWATCH fdw)
 
 void client_data_delete(CLIENT_DATA_POINTER client_data)
 {
-	free(client_data->recvbuf);
-	free(client_data->sendbuf);
+	if (!client_data)
+		return;
+
+	if (client_data->recvbuf)
+		free(client_data->recvbuf);
+
+	if (client_data->sendbuf)
+		free(client_data->sendbuf);
+
 	free(client_data);
 }
 

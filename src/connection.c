@@ -23,6 +23,9 @@ void process_new_connection(SOCKET server_socket, LPFDWATCH main_fdw, unsigned i
 
 void process_client_read(LPFDWATCH main_fdw, CLIENT_DATA_POINTER client_data)
 {
+    if (!client_data)
+        return;
+
     ERecvResult r = recv_all(client_data->socket, &client_data->recvbuf, &client_data->recvlen, &client_data->recvbufsize);
     switch (r)
     {
@@ -54,6 +57,9 @@ void process_client_read(LPFDWATCH main_fdw, CLIENT_DATA_POINTER client_data)
 
 void process_client_write(LPFDWATCH main_fdw, CLIENT_DATA_POINTER client_data)
 {
+    if (!client_data)
+        return;
+
     ESendResult s = send_all(client_data->socket, client_data->sendbuf, client_data->totalsendlen, &client_data->sendlen);
     switch (s)
     {
