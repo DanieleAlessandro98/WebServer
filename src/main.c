@@ -6,7 +6,7 @@
 #include "fdwatch.h"
 #include "connection.h"
 
-int cleanup_and_exit(SOCKET *server_socket, LPFDWATCH *main_fdw, int exit_code);
+int cleanup_and_exit(SOCKET server_socket, LPFDWATCH *main_fdw, int exit_code);
 
 int main()
 {
@@ -22,7 +22,7 @@ int main()
     if (!create_socket(&server_socket))
     {
         fprintf(stderr, "Failed to create socket: %d.\n", GETSOCKETERROR());
-        cleanup_and_exit(NULL, NULL, EXIT_FAILURE);
+        cleanup_and_exit(server_socket, NULL, EXIT_FAILURE);
     }
 
     NetAddress address;
@@ -40,19 +40,19 @@ int main()
             break;
         }
 
-        cleanup_and_exit(&server_socket, NULL, EXIT_FAILURE);
+        cleanup_and_exit(server_socket, NULL, EXIT_FAILURE);
     }
 
-    if (!bind_socket(&server_socket, &address))
+    if (!bind_socket(server_socket, &address))
     {
         fprintf(stderr, "Failed to bind socket: %d.\n", GETSOCKETERROR());
-        cleanup_and_exit(&server_socket, NULL, EXIT_FAILURE);
+        cleanup_and_exit(server_socket, NULL, EXIT_FAILURE);
     }
 
-    if (!listen_socket(&server_socket))
+    if (!listen_socket(server_socket))
     {
         fprintf(stderr, "Failed to listen socket: %d.\n", GETSOCKETERROR());
-        cleanup_and_exit(&server_socket, NULL, EXIT_FAILURE);
+        cleanup_and_exit(server_socket, NULL, EXIT_FAILURE);
     }
 
     printf("Waiting connections...\n");
@@ -61,7 +61,7 @@ int main()
     if (!main_fdw)
     {
         fprintf(stderr, "Failed to create fdwatch.\n");
-        cleanup_and_exit(&server_socket, NULL, EXIT_FAILURE);
+        cleanup_and_exit(server_socket, NULL, EXIT_FAILURE);
     }
 
     fdwatch_add_fd(main_fdw, server_socket, NULL, FDW_READ);
@@ -107,21 +107,21 @@ int main()
             case FDW_EOF:
             default:
                 fprintf(stderr, "fdwatch_check_event returned unknown %d, socket = %lld\n", event, client_data->socket);
-                close_client_session(main_fdw, client_data);
+                close_client_session(main_fdw, client_data->socket, client_data);
                 break;
             }
         }
     }
 
-    cleanup_and_exit(&server_socket, &main_fdw, EXIT_SUCCESS);
+    cleanup_and_exit(server_socket, &main_fdw, EXIT_SUCCESS);
     return 0;
 }
 
-int cleanup_and_exit(SOCKET *server_socket, LPFDWATCH *main_fdw, int exit_code)
+int cleanup_and_exit(SOCKET server_socket, LPFDWATCH *main_fdw, int exit_code)
 {
     printf("\n...Cleanup resources...\n");
 
-    if (server_socket && *server_socket != INVALID_SOCKET)
+    if (server_socket != INVALID_SOCKET)
         close_socket(server_socket);
 
     if (main_fdw && *main_fdw)
