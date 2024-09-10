@@ -1,82 +1,82 @@
 # WebServer
 
-## Panoramica Generale
+## Overview
 
-WebServer è un server HTTP semplice scritto in C, basato su socket, capace di gestire più connessioni simultanee e di elaborare richieste e risposte HTTP di base, come la richiesta di file statici. Utilizza un watcher chiamato `fdwatch` per monitorare gli eventi di lettura e scrittura sui file descriptor. Inoltre, è progettato per essere compatibile con sistemi operativi Windows e POSIX (come Linux), grazie alle macro di compatibilità definite nel file `definitions.h`.
+WebServer is a simple HTTP server written in C, socket-based, capable of handling multiple concurrent connections and simple HTTP requests and responses, such as requests for static files. It uses a watcher called `fdwatch` to monitor read and write events on file descriptors. It is also designed to be compatible with Windows and POSIX (such as Linux) operating systems, thanks to compatibility macros defined in the `definitions.h` file.
 
-## Caratteristiche principali
+## Key features
 
-- **Gestione Connessioni Simultanee**: Il server può gestire più connessioni contemporaneamente grazie all'uso di `fdwatch`.
-- **Supporto per il Metodo GET**: È in grado di servire file statici dal filesystem e fornire risposte HTTP appropriate, come `200 OK`, `404 Not Found` o `400 Bad Request`.
-- **Socket Non Bloccanti**: Utilizza socket non bloccanti.
-- **Gestione Errori**: Fornisce messaggi di errore per operazioni socket fallite o richieste HTTP malformate.
-- **Buffer Dinamici**: Impiega buffer dinamici per adattarsi alle dimensioni dei dati in arrivo e in uscita, ottimizzando così l'uso della memoria.
-- **Compatibilità Multi-Piattaforma**: È compatibile con sistemi operativi Windows e POSIX.
+- **Simultaneous connection handling**: The server can handle multiple connections simultaneously using `fdwatch`.
+- **GET method support**: Can serve static files from the file system and return appropriate HTTP responses such as `200 OK`, `404 Not Found` or `400 Bad Request`.
+- **Non-blocking sockets**: Uses non-blocking sockets.
+- **Error handling**: Provides error messages for failed socket operations or malformed HTTP requests.
+- **Dynamic Buffers**: Uses dynamic buffers to adapt to the size of incoming and outgoing data, optimising memory usage.
+- **Cross-Platform**: Compatible with both Windows and POSIX operating systems.
 
 
-## Struttura del Progetto
+## Project structure
 
-La struttura del progetto è organizzata come segue:
+The project is structured and organised as follows:
 
 ```
 WebServer/
 │
-├── bin/             # Directory contenente l'eseguibile
-├── build/           # File generati da CMake per la build
-├── public/          # File statici (HTML, CSS, ecc.)
-├── src/             # Codice sorgente
-└── CMakeLists.txt   # Configurazione CMake
+├── bin/             # Executable directory
+├── build/           # CMake generated compilation files
+├── public/          # Static files (HTML, CSS, etc.)
+├── src/             # Source code
+└── CMakeLists.txt   # CMake Configuration
 ```
 
-## Files principali
+## Main files
 
-- **`main.c`**: Contiene il loop principale del server, gestisce l'ascolto delle connessioni e la chiusura graduale del server.
+- **`main.c`**: Contains the main loop of the server, handles listening for connections and shutting down the server.
 
-- **`socket.c`**: Si occupa della creazione e configurazione dei socket. Include la creazione del socket, l'impostazione delle opzioni come `SO_REUSEADDR` e `NONBLOCK`, il binding e l'ascolto delle nuove connessioni, oltre alla gestione delle connessioni in arrivo.
+- **`socket.c`**: Handles socket creation and configuration. This includes socket creation, setting options such as `SO_REUSEADDR` and `NONBLOCK`, binding and listening for new connections, and handling incoming connections.
 
-- **`fdwatch.c`**: Implementa un wrapper attorno alla funzione `select()`, utilizzata per monitorare eventi di lettura e scrittura sui socket. Questo approccio consente al server di gestire più connessioni simultanee in modo efficiente, senza la necessità di creare un thread separato per ciascuna connessione.
+- **`fdwatch.c`**: Implements a wrapper around `select()` function, used to monitor read and write events on sockets. This approach allows the server to efficiently handle multiple concurrent connections without having to create a separate thread for each connection.
 
-- **`connection.c`**: Gestisce le connessioni con i client. Le principali funzioni sono `process_new_connection()` per le nuove connessioni, `process_client_read()` per la lettura dei dati inviati dal client e `process_client_write()` per la scrittura dei dati.
+- **`connection.c`**: Handles connections with clients. The main functions are `process_new_connection()` for new connections, `process_client_read()` for reading data sent by the client and `process_client_write()` for writing data.
 
-- **`http.c`**: Implementa la logica per l'elaborazione delle richieste HTTP e inviare le appropriate risposte. Supporta il metodo `GET` per servire file statici e gestisce errori HTTP comuni come `400 Bad Request` e `404 Not Found`.
+- **`http.c`**: Implements the logic for processing HTTP requests and sending the appropriate responses. It supports the `GET` method for serving static files and handles common HTTP errors such as `400 Bad Request` and `404 Not Found`.
 
-- **`network_io.c`**: Gestisce l'invio e la ricezione dei dati sui socket.
+- **`network_io.c`**: Handles sending and receiving data on sockets.
 
-- **`buffer.c`**: Gestisce la riallocazione dinamica dei buffer per l'invio e la ricezione, adattandosi alle dimensioni variabili dei dati e ottimizzando l'uso della memoria.
+- **`buffer.c`**: Manages the dynamic reallocation of buffers for sending and receiving, adapting to variable data sizes and optimising memory usage.
 
-- **`definitions.h`**: Definisce costanti e macro per garantire la portabilità e la consistenza del codice tra diverse piattaforme (Windows e Unix-like). Specifica anche limiti e dimensioni massime per il protocollo HTTP.
+- **`definitions.h`**: Defines constants and macros to ensure portability and consistency of code between different platforms (Windows and Unix-like). It also specifies limits and maximum sizes for the HTTP protocol.
 
 
 
-## Requisiti
+## Requirements
 
-- **CMake** 3.10 o successivo
-- **Compilatore C** (MinGW, MSVC, ecc.)
+- **CMake** 3.10 or later
+- **C compiler** (MinGW, MSVC, etc.)
 
-## Installazione e Configurazione
+## Installation and Configuration
 
-Per installare e compilare **WebServer**, segui i seguenti passaggi:
+To install and compile WebServer, follow the steps below:
 
-1. **Clona il repository:**
+1. **Clone the repository:**
    ```bash
    git clone https://github.com/DanieleAlessandro98/WebServer.git
    cd WebServer
    ```
 
-2. **Compila il progetto:**
+2. **Compile the project:**
    ```bash
    cd build
    cmake .. && cmake --build .
    ```
 
-3. **Esegui l'applicazione:**
-   L'eseguibile si troverà nella cartella `bin`.
+3. **Run the application:**
+   The executable will be in the `bin` folder.
 
-## Utilizzo
+## How to use
 
-Una volta avviato il server, vi si può accedere tramite browser. Per impostazione predefinita, il server risponderà con i file HTML presenti nella cartella `public/`.
+Once the server is up and running, it can be accessed via a browser. By default, the server responds with HTML files in the `public/` folder.
 
-Esempio:
+Example:
 ```
 http://localhost:8080
 ```
