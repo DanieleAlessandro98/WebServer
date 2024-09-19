@@ -26,7 +26,7 @@ int main()
     }
 
     NetAddress address;
-    EAddressResult address_result = set_address(&address, "0.0.0.0", 8080);
+    EAddressResult address_result = set_address(&address, "0.0.0.0", 80);
     if (address_result != ADDRESS_SUCCESS)
     {
         switch (address_result)
